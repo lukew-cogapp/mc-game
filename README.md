@@ -32,21 +32,22 @@ A 2D block sandbox set among procedurally generated floating sky islands. Glide 
 ## Features
 
 - **Structured world**: Chain-of-promises island layout with safe, resource, reward, transit, and goal islands
-- **5 biomes**: Grassland, rocky, sandy, mossy, crystal — assigned by height
+- **5 biomes**: Grassland, rocky, sandy, mossy, crystal -- assigned by height
 - **Block sandbox**: Break/place with mining animation, hover highlight, adjacency rules
 - **Movement**: Momentum-based physics, double jump, glide, coyote time, jump buffering
 - **Jetpack power-up**: Collectible fuel blocks give 3s of rocket boost with fire particles
-- **Fruit**: Apples, pears, peaches, strawberries, berries — eat 10 to regain a life
+- **Fruit**: Apples, pears, peaches, strawberries, berries -- eat 10 to regain a life
 - **3 lives**: Lava death with invulnerability on respawn, fruit-based life recovery
 - **Rising lava**: Visible danger glow, lava progress meter on HUD
-- **Day/night cycle**: Shrinking vision radius at night
-- **NPCs**: Friendly characters on islands with cycling dialogue
+- **Day/night cycle**: Shrinking vision radius at night, sky color transitions
+- **NPCs**: Friendly characters on islands with proximity-triggered cycling dialogue
 - **Timer + high scores**: Top 5 fastest times saved locally with reset option
-- **Victory screen**: Golden celebration with leaderboard on reaching the sky
-- **Procedural 8-bit music**: Chiptune melody via Web Audio API, toggle in settings
-- **Character customization**: Outfit, skin, hats, drawn faces, particle trails
-- **Xbox controller**: Full support via raw browser Gamepad API
+- **Victory screen**: Golden celebration with sparkle particles and leaderboard on reaching the sky
+- **Procedural 8-bit music**: Chiptune melody via Web Audio API, music and SFX toggles on title screen persisted to localStorage
+- **Character customization**: Outfit colors, skin tones, hats, drawn faces, particle trails (sparkles, hearts, bubbles, fire, rainbow)
+- **Xbox controller**: Full support via raw browser Gamepad API (left stick move, A jump, right stick aim, X break, B place, LB/RB inventory)
 - **Pixel-art textures**: Custom drawn sprites for fruit, flowers, mushrooms, water, leaves, jetpack
+- **OO architecture**: Player, Npc, and InventoryBar classes with clean separation of concerns
 
 ## Tech Stack
 

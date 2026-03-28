@@ -58,9 +58,6 @@ import {
 	HUD_DEPTH,
 	HUD_FRUIT_COLOR,
 	HUD_FRUIT_Y,
-	HUD_GLIDE_COLOR,
-	HUD_GLIDE_X,
-	HUD_GLIDE_Y,
 	HUD_JETPACK_POPUP_COLOR,
 	HUD_LAVA_LABEL_COLOR,
 	HUD_LEFT_H,
@@ -125,6 +122,7 @@ import {
 	readGamepadRightStick,
 } from "../player/player";
 import { BlockType } from "../types";
+import { NotificationManager } from "../ui/notifications";
 import {
 	createDayNight,
 	type DayNightCycle,
@@ -168,8 +166,8 @@ export class GameScene extends Phaser.Scene {
 	private inventory!: InventoryBar;
 	private blockInteraction!: BlockInteraction;
 	private lava!: LavaLayer;
-	private glideIndicator!: Phaser.GameObjects.Text;
 	private hoverHighlight!: Phaser.GameObjects.Graphics;
+	private notifications!: NotificationManager;
 	private dayNight!: DayNightCycle;
 	private lavaMeterGfx!: Phaser.GameObjects.Graphics;
 	private lavaMeterLabel!: Phaser.GameObjects.Text;
@@ -218,6 +216,8 @@ export class GameScene extends Phaser.Scene {
 		if (this.input.keyboard) {
 			this.input.keyboard.removeAllListeners();
 		}
+		// Destroy notification manager
+		this.notifications?.destroy();
 		// Stop background music
 		stopMusic(this.music);
 	}
@@ -272,7 +272,9 @@ export class GameScene extends Phaser.Scene {
 		this.player = new Player(this, spawnX, spawnY, data);
 
 		// NPCs
-		this.npcs = npcPositions.map((pos) => new Npc(this, pos.x, pos.y));
+		this.npcs = npcPositions.map(
+			(pos) => new Npc(this, pos.x, pos.y, pos.name),
+		);
 
 		// Camera
 		this.cameras.main.setBounds(
@@ -394,15 +396,6 @@ export class GameScene extends Phaser.Scene {
 		hudBgLeftBorder.setScrollFactor(0);
 		hudBgLeftBorder.setDepth(HUD_DEPTH);
 
-		this.glideIndicator = this.add.text(HUD_GLIDE_X, HUD_GLIDE_Y, "", {
-			fontSize: "16px",
-			color: HUD_GLIDE_COLOR,
-			fontStyle: "bold",
-		});
-		this.glideIndicator.setResolution(2);
-		this.glideIndicator.setScrollFactor(0);
-		this.glideIndicator.setDepth(UI_DEPTH);
-
 		// -- HUD: Top-right lives panel --
 		const camW = this.cameras.main.width;
 		const hudBgRight = this.add.rectangle(
@@ -493,6 +486,9 @@ export class GameScene extends Phaser.Scene {
 			this.musicMuted = !this.musicMuted;
 			setMusicVolume(this.music, this.musicMuted ? 0 : MUSIC_VOLUME);
 		});
+
+		// Notification manager
+		this.notifications = new NotificationManager(this);
 	}
 
 	private updateHoverHighlight = (): void => {
@@ -550,10 +546,19 @@ export class GameScene extends Phaser.Scene {
 
 		// Update player
 		const input = createGameInput(this.cursors, this.wasd, this.spaceKey);
+		const livesBefore = this.player.lives;
 		const gameOver = this.player.update(input, this.grid, lavaY, delta);
 		if (gameOver) {
 			this.scene.start("GameOverScene");
 			return;
+		}
+
+		// Player death notification (lost a life but not game over)
+		if (this.player.lives < livesBefore) {
+			this.notifications.show(
+				`You fell into the lava! ${this.player.lives} lives remaining`,
+				"#ff4444",
+			);
 		}
 
 		// Win check — reached the top of the world
@@ -606,21 +611,24 @@ export class GameScene extends Phaser.Scene {
 		// Ambient upward-drifting particles
 		this.updateAmbientParticles(delta);
 
-		// NPC dialogue
-		for (const npc of this.npcs) {
-			npc.update(this.player.x, this.player.y, delta);
+		// NPC gravity + dialogue
+		for (let i = this.npcs.length - 1; i >= 0; i--) {
+			const npc = this.npcs[i];
+			const deathMsg = npc.update(
+				this.player.x,
+				this.player.y,
+				delta,
+				this.grid,
+				lavaY,
+			);
+			if (deathMsg) {
+				this.notifications.show(deathMsg, "#ff6666");
+				this.npcs.splice(i, 1);
+			}
 		}
 
-		// Glide / Jetpack indicator
-		if (this.player.jetpackActive) {
-			this.glideIndicator.setText("JETPACK");
-		} else if (this.player.isGliding) {
-			this.glideIndicator.setText("GLIDING");
-		} else if (!this.player.isGrounded) {
-			this.glideIndicator.setText("Hold SPACE to glide");
-		} else {
-			this.glideIndicator.setText("");
-		}
+		// Update notifications
+		this.notifications.update(delta);
 	}
 
 	private getGamepadTargetTile = (): { gx: number; gy: number } => {
@@ -801,6 +809,9 @@ export class GameScene extends Phaser.Scene {
 					duration: FRUIT_POPUP_DURATION,
 					onComplete: () => popup.destroy(),
 				});
+
+				// Notification
+				this.notifications.show("+1 Life! (from fruit)", "#44ff44");
 			}
 		}
 	};
@@ -856,6 +867,9 @@ export class GameScene extends Phaser.Scene {
 				duration: FRUIT_POPUP_DURATION,
 				onComplete: () => popup.destroy(),
 			});
+
+			// Notification
+			this.notifications.show("Jetpack fuel collected! +3s", "#ff8800");
 		}
 	};
 

@@ -629,7 +629,7 @@ export const VICTORY_LEADERBOARD_OFFSET_Y = 80;
 export const VICTORY_LEADERBOARD_ROW_HEIGHT = 24;
 export const VICTORY_LEADERBOARD_FONT_SIZE = "16px";
 export const VICTORY_LEADERBOARD_FADE_DELAY = 1400;
-export const VICTORY_PROMPT_OFFSET_Y = 200;
+export const VICTORY_PROMPT_OFFSET_Y = 260;
 export const VICTORY_PROMPT_FONT_SIZE = "16px";
 export const VICTORY_PROMPT_FADE_DURATION = 500;
 export const VICTORY_PROMPT_FADE_DELAY = 2000;
@@ -721,3 +721,44 @@ export const INVENTORY_NAME_COLOR = "#ffffff";
 export const INVENTORY_COUNT_SHADOW_COLOR = "#000000";
 export const INVENTORY_COUNT_COLOR = "#ffffff";
 export const INVENTORY_SLOT_NUM_COLOR = "#99aacc";
+
+// -- Notifications --
+export const NOTIFICATION_DURATION = 3000;
+export const NOTIFICATION_FADE_DURATION = 300;
+export const NOTIFICATION_MAX_VISIBLE = 4;
+export const NOTIFICATION_OFFSET_X = 20;
+export const NOTIFICATION_OFFSET_Y = -80;
+export const NOTIFICATION_SPACING = 36;
+export const NOTIFICATION_FONT_SIZE = "14px";
+export const NOTIFICATION_BG_COLOR = 0x000000;
+export const NOTIFICATION_BG_ALPHA = 0.7;
+
+// -- Block Mining Times (ms per block type) --
+export const MINE_TIME_DIRT = 200;
+export const MINE_TIME_GRASS = 250;
+export const MINE_TIME_SAND = 150;
+export const MINE_TIME_WOOD = 400;
+export const MINE_TIME_LEAF = 100;
+export const MINE_TIME_STONE = 600;
+export const MINE_TIME_MOSSY_STONE = 500;
+export const MINE_TIME_CRYSTAL = 800;
+export const MINE_TIME_DEAD_WOOD = 300;
+export const MINE_TIME_DEFAULT = 300;
+
+// -- NPC Physics --
+export const NPC_GRAVITY = 600;
+export const NPC_FALL_CHECK_OFFSET = 1;
+
+// -- NPC Names --
+export const NPC_NAMES: readonly string[] = [
+	"Chip",
+	"Pixel",
+	"Blocky",
+	"Drift",
+	"Sky",
+	"Pebble",
+	"Mossy",
+	"Sandy",
+	"Leaf",
+	"Spark",
+] as const;

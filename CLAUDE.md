@@ -34,6 +34,11 @@ Pre-commit hooks (lefthook) run lint, typecheck, and test in parallel.
 
 **Four Phaser scenes:** `TitleScene` → `GameScene` → `GameOverScene` / `VictoryScene` → back to title.
 
+**OO class architecture:**
+- `Player` (`src/player/player.ts`) — player entity with physics, rendering, input, trail particles, jetpack. Created as a Phaser Container with body, head, hat, face (drawn via Graphics), outline, shadow.
+- `Npc` (`src/world/npcs.ts`) — friendly NPCs with bob animation, proximity-triggered speech bubbles, cycling dialogue pool.
+- `InventoryBar` (`src/player/inventory.ts`) — 9-slot hotbar with block previews, count labels, keyboard/scroll/gamepad selection.
+
 **GameScene update loop order:**
 1. Lava: rise + danger glow
 2. Player: input → physics (acceleration, coyote time, jump buffer) → collision → death/win check
@@ -46,9 +51,13 @@ Pre-commit hooks (lefthook) run lint, typecheck, and test in parallel.
 
 **World system:** `BlockType[][]` grid (200x100 tiles, 32px). Manual grid-based collision (no Phaser physics). Island generation follows "chain of reachable promises" pattern with roles (safe/resource/reward/transit/goal).
 
-**Player system:** Container with body, head, hat, face (drawn via Graphics), outline, shadow. Momentum-based movement, double jump, glide, coyote time, jump buffering, variable jump height, jetpack boost. Particle emitter for trail effects.
+**Player system:** Momentum-based movement, double jump, glide, coyote time, jump buffering, variable jump height. Jetpack power-up gives 3s of rocket thrust with fire particle effects. Particle emitter for configurable trail effects (sparkles, hearts, bubbles, fire, rainbow).
 
-**Audio:** Procedural 8-bit chiptune via Web Audio API oscillators (square wave, 2-channel). Settings persisted to localStorage.
+**High scores system:** Top 5 fastest completion times saved to localStorage (`drift-lands-high-scores`). Displayed on title screen with gold highlight for #1, and on victory screen with "NEW HIGH SCORE" callout. Reset with confirmation dialog (3s timeout).
+
+**Victory scene:** Golden-themed celebration screen with sparkle particles, time display, leaderboard, and new high score indicator. Triggered when player reaches the sky (WIN_ZONE_Y_TILES).
+
+**Audio:** Procedural 8-bit chiptune via Web Audio API oscillators (square wave, 2-channel). Music and SFX toggles on title screen, settings persisted to localStorage (`drift-lands-settings`).
 
 **Persistence (localStorage):**
 - Character customization: `drift-lands-character`
@@ -57,15 +66,19 @@ Pre-commit hooks (lefthook) run lint, typecheck, and test in parallel.
 
 ## Key Files
 
-- `src/config.ts` — all game constants (500+)
+- `src/config.ts` — all game constants (700+), including all text colors (prefixed by scene: `TITLE_*`, `GAMEOVER_*`, `VICTORY_*`, `HUD_*`, etc.)
 - `src/types.ts` — BlockType enum, Island interface (with roles), NON_SOLID_BLOCKS set
 - `src/audio/music.ts` — procedural chiptune generator
 - `src/audio/settings.ts` — music/SFX settings persistence
 - `src/audio/high-scores.ts` — top 5 leaderboard
+- `src/player/player.ts` — Player class (physics, rendering, input, jetpack)
+- `src/player/inventory.ts` — InventoryBar class (9-slot hotbar)
 - `src/player/face-renderer.ts` — shared face-drawing (player + title preview)
+- `src/player/block-interaction.ts` — break/place logic with mining animation
 - `src/world/island-generator.ts` — chain-of-promises generation
-- `src/world/npcs.ts` — NPC spawning and dialogue
+- `src/world/npcs.ts` — Npc class (spawning, dialogue, proximity triggers)
 - `src/world/world-renderer.ts` — block textures including pixel-art shapes
+- `src/world/day-night.ts` — day/night cycle with vision radius
 
 ## Deploy
 

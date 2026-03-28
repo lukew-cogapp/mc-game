@@ -1,6 +1,4 @@
 import {
-	NPC_BOB_AMPLITUDE,
-	NPC_BOB_DURATION,
 	NPC_BODY_COLOR,
 	NPC_BODY_HEIGHT,
 	NPC_BODY_WIDTH,
@@ -23,13 +21,16 @@ import {
 	NPC_EYE_COLOR,
 	NPC_EYE_OFFSET_X,
 	NPC_EYE_RADIUS,
+	NPC_FALL_CHECK_OFFSET,
+	NPC_GRAVITY,
 	NPC_HEAD_COLOR,
 	NPC_HEAD_RADIUS,
 	NPC_INTERACT_RANGE,
+	NPC_NAMES,
 	NPC_TEXT_COLOR,
 	TILE_SIZE,
 } from "../config";
-import type { Island } from "../types";
+import { type BlockType, type Island, NON_SOLID_BLOCKS } from "../types";
 
 const DIALOGUE_POOL: string[] = [
 	"The view from up here is amazing!",
@@ -64,25 +65,51 @@ const pickRandomLines = (count: number): string[] => {
 	return shuffled.slice(0, count);
 };
 
+/** Maximum tiles to search upward when an NPC spawn is inside a solid block. */
+const NPC_SPAWN_MAX_UPWARD_SEARCH = 3;
+
 export const pickNpcSpawnPositions = (
 	islands: Island[],
-): { x: number; y: number }[] => {
+	grid: BlockType[][],
+): { x: number; y: number; name: string }[] => {
 	// Exclude the home island (index 0) from NPC spawning
 	const candidates = islands.slice(1);
 	if (candidates.length === 0) return [];
 
 	const shuffled = [...candidates].sort(() => Math.random() - 0.5);
 	const count = Math.min(NPC_COUNT, shuffled.length);
-	const positions: { x: number; y: number }[] = [];
+	const positions: { x: number; y: number; name: string }[] = [];
+
+	const shuffledNames = [...NPC_NAMES].sort(() => Math.random() - 0.5);
 
 	for (let i = 0; i < count; i++) {
 		const island = shuffled[i];
 		// Place the NPC on the surface, roughly centered
 		const tileX = island.x + Math.floor(island.width / 2);
-		const tileY = island.y - 1; // one tile above the surface
+		let tileY = island.y - 1; // one tile above the surface
+
+		// Validate spawn tile is Air; if not, search upward
+		let found = false;
+		for (let offset = 0; offset <= NPC_SPAWN_MAX_UPWARD_SEARCH; offset++) {
+			const checkY = tileY - offset;
+			if (
+				checkY >= 0 &&
+				checkY < grid.length &&
+				tileX >= 0 &&
+				tileX < grid[0].length &&
+				NON_SOLID_BLOCKS.has(grid[checkY][tileX])
+			) {
+				tileY = checkY;
+				found = true;
+				break;
+			}
+		}
+		if (!found) continue; // Skip this NPC if no air found
+
 		positions.push({
 			x: tileX * TILE_SIZE + TILE_SIZE / 2,
 			y: tileY * TILE_SIZE + TILE_SIZE / 2,
+			name: shuffledNames[i % shuffledNames.length],
 		});
 	}
 
@@ -140,13 +167,17 @@ export class Npc extends Phaser.GameObjects.Container {
 	private fadeTween: Phaser.Tweens.Tween | null = null;
 	private spawnX: number;
 	private spawnY: number;
+	velocityY = 0;
+	alive = true;
+	npcName: string;
 
-	constructor(scene: Phaser.Scene, x: number, y: number) {
+	constructor(scene: Phaser.Scene, x: number, y: number, name: string) {
 		super(scene, x, y);
 		scene.add.existing(this);
 
 		this.spawnX = x;
 		this.spawnY = y;
+		this.npcName = name;
 
 		// Body (small colored rectangle)
 		const body = scene.add.rectangle(
@@ -186,18 +217,53 @@ export class Npc extends Phaser.GameObjects.Container {
 		// Pick random dialogue
 		this.dialogueLines = pickRandomLines(NPC_DIALOGUE_LINE_COUNT);
 
-		// Idle bob tween
-		scene.tweens.add({
-			targets: this,
-			y: y - NPC_BOB_AMPLITUDE,
-			duration: NPC_BOB_DURATION,
-			yoyo: true,
-			repeat: -1,
-			ease: "Sine.easeInOut",
-		});
+		// Note: idle bob removed — NPC gravity now controls vertical position
 	}
 
-	update = (playerX: number, playerY: number, delta: number): void => {
+	update = (
+		playerX: number,
+		playerY: number,
+		delta: number,
+		grid: BlockType[][],
+		lavaY: number,
+	): string | null => {
+		if (!this.alive) return null;
+
+		// -- Gravity --
+		const dt = delta / 1000;
+		this.velocityY += NPC_GRAVITY * dt;
+
+		const feetY = this.y + NPC_BODY_HEIGHT / 2 + NPC_FALL_CHECK_OFFSET;
+		const gridX = Math.floor(this.x / TILE_SIZE);
+		const gridY = Math.floor(feetY / TILE_SIZE);
+
+		const solidBelow =
+			gridY >= 0 &&
+			gridY < grid.length &&
+			gridX >= 0 &&
+			gridX < grid[0].length &&
+			!NON_SOLID_BLOCKS.has(grid[gridY][gridX]);
+
+		if (solidBelow && this.velocityY >= 0) {
+			// Snap to surface
+			this.y = gridY * TILE_SIZE - NPC_BODY_HEIGHT / 2;
+			this.velocityY = 0;
+		} else {
+			this.y += this.velocityY * dt;
+		}
+
+		// Keep spawnX/spawnY in sync for dialogue proximity check
+		this.spawnY = this.y;
+
+		// -- Lava death --
+		if (this.y > lavaY) {
+			this.alive = false;
+			this.bubble?.destroy();
+			this.bubble = null;
+			this.destroy();
+			return `${this.npcName} fell into the lava!`;
+		}
+
 		const interactDist = NPC_INTERACT_RANGE * TILE_SIZE;
 		const dx = playerX - this.spawnX;
 		const dy = playerY - this.spawnY;
@@ -237,6 +303,8 @@ export class Npc extends Phaser.GameObjects.Container {
 				});
 			}
 		}
+
+		return null;
 	};
 
 	private createBubble = (): void => {

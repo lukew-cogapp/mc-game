@@ -104,10 +104,6 @@ import {
 	TITLE_START_BTN_RADIUS,
 	TITLE_START_BTN_STROKE,
 	TITLE_START_BTN_W,
-	TITLE_START_GLOW_ALPHA,
-	TITLE_START_GLOW_COLOR,
-	TITLE_START_GLOW_H,
-	TITLE_START_GLOW_W,
 	TITLE_START_LABEL_COLOR,
 	TITLE_SUBTITLE_COLOR,
 	TITLE_SUBTITLE_Y,
@@ -268,9 +264,6 @@ export class TitleScene extends Phaser.Scene {
 	private controlsOverlay!: Phaser.GameObjects.Container;
 	private controlsVisible = false;
 	private settings!: GameSettings;
-
-	// Start button glow
-	private startGlow!: Phaser.GameObjects.Rectangle;
 
 	constructor() {
 		super({ key: "TitleScene" });
@@ -582,27 +575,6 @@ export class TitleScene extends Phaser.Scene {
 		// -- Bottom: Start button --
 		const bottomY = panelTop + panelH + TITLE_START_BTN_OFFSET_Y;
 
-		// Glow behind button
-		this.startGlow = this.add.rectangle(
-			cx,
-			bottomY,
-			TITLE_START_GLOW_W,
-			TITLE_START_GLOW_H,
-			TITLE_START_GLOW_COLOR,
-			TITLE_START_GLOW_ALPHA,
-		);
-		this.startGlow.setBlendMode(Phaser.BlendModes.ADD);
-		this.tweens.add({
-			targets: this.startGlow,
-			alpha: 0.4,
-			scaleX: 1.12,
-			scaleY: 1.15,
-			duration: 1000,
-			yoyo: true,
-			repeat: -1,
-			ease: "Sine.easeInOut",
-		});
-
 		// Start button — clickable zone covers the full button area
 		const btnW = TITLE_START_BTN_W;
 		const btnH = TITLE_START_BTN_H;
@@ -636,17 +608,6 @@ export class TitleScene extends Phaser.Scene {
 				fontStyle: "bold",
 			})
 			.setOrigin(0.5);
-
-		// Idle pulse on the label
-		this.tweens.add({
-			targets: startLabel,
-			scaleX: 1.03,
-			scaleY: 1.03,
-			duration: 800,
-			yoyo: true,
-			repeat: -1,
-			ease: "Sine.easeInOut",
-		});
 
 		// Invisible interactive rect over the entire button
 		const startHitZone = this.add

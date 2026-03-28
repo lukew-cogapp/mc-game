@@ -3,14 +3,49 @@ import {
 	BLOCK_BREAK_OVERLAY_COLOR,
 	BLOCK_BREAK_PROGRESS_ALPHA_RANGE,
 	BLOCK_INTERACT_RANGE,
-	BREAK_TIME_MS,
 	CRACK_LINE_ALPHA,
 	CRACK_LINE_COLOR,
 	CRACK_LINE_WIDTH,
 	CRACK_STAGES,
+	MINE_TIME_CRYSTAL,
+	MINE_TIME_DEAD_WOOD,
+	MINE_TIME_DEFAULT,
+	MINE_TIME_DIRT,
+	MINE_TIME_GRASS,
+	MINE_TIME_LEAF,
+	MINE_TIME_MOSSY_STONE,
+	MINE_TIME_SAND,
+	MINE_TIME_STONE,
+	MINE_TIME_WOOD,
 	TILE_SIZE,
 } from "../config";
 import { BlockType, NON_SOLID_BLOCKS } from "../types";
+
+const getMineTime = (blockType: BlockType): number => {
+	switch (blockType) {
+		case BlockType.Dirt:
+			return MINE_TIME_DIRT;
+		case BlockType.Grass:
+			return MINE_TIME_GRASS;
+		case BlockType.Sand:
+			return MINE_TIME_SAND;
+		case BlockType.Wood:
+			return MINE_TIME_WOOD;
+		case BlockType.DeadWood:
+			return MINE_TIME_DEAD_WOOD;
+		case BlockType.Leaf:
+			return MINE_TIME_LEAF;
+		case BlockType.Stone:
+			return MINE_TIME_STONE;
+		case BlockType.MossyStone:
+			return MINE_TIME_MOSSY_STONE;
+		case BlockType.CrystalBlock:
+			return MINE_TIME_CRYSTAL;
+		default:
+			return MINE_TIME_DEFAULT;
+	}
+};
+
 import { addBlockSprite, removeBlockSprite } from "../world/world-renderer";
 import type { InventoryBar } from "./inventory";
 import type { Player } from "./player";
@@ -41,6 +76,10 @@ const hasAdjacentSolid = (
 		[gx + 1, gy],
 		[gx, gy - 1],
 		[gx, gy + 1],
+		[gx - 1, gy - 1],
+		[gx + 1, gy - 1],
+		[gx - 1, gy + 1],
+		[gx + 1, gy + 1],
 	];
 	return neighbors.some(([nx, ny]) => {
 		if (nx === undefined || ny === undefined) return false;
@@ -117,8 +156,11 @@ export const handleBlockBreak = (
 
 	interaction.breakingTimer += delta;
 
+	// Per-block mining time
+	const mineTime = getMineTime(grid[gy][gx]);
+
 	// Update overlay opacity and crack lines based on progress
-	const progress = Math.min(interaction.breakingTimer / BREAK_TIME_MS, 1);
+	const progress = Math.min(interaction.breakingTimer / mineTime, 1);
 	if (interaction.breakingOverlay) {
 		interaction.breakingOverlay.setAlpha(
 			BLOCK_BREAK_OVERLAY_ALPHA + progress * BLOCK_BREAK_PROGRESS_ALPHA_RANGE,
@@ -133,7 +175,7 @@ export const handleBlockBreak = (
 	}
 
 	// Block broken!
-	if (interaction.breakingTimer >= BREAK_TIME_MS) {
+	if (interaction.breakingTimer >= mineTime) {
 		const blockType = grid[gy][gx];
 		grid[gy][gx] = BlockType.Air;
 		removeBlockSprite(blockGroup, gx, gy);

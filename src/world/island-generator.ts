@@ -675,7 +675,7 @@ export const generateWorld = (): {
 	islands: Island[];
 	spawnX: number;
 	spawnY: number;
-	npcPositions: { x: number; y: number }[];
+	npcPositions: { x: number; y: number; name: string }[];
 } => {
 	const grid: BlockType[][] = Array.from({ length: WORLD_HEIGHT_TILES }, () =>
 		Array(WORLD_WIDTH_TILES).fill(BlockType.Air),
@@ -906,7 +906,7 @@ export const generateWorld = (): {
 	const spawnY = spawnTileY * TILE_SIZE;
 
 	// 6. NPC placement
-	const npcPositions = pickNpcSpawnPositions(islands);
+	const npcPositions = pickNpcSpawnPositions(islands, grid);
 
 	return { grid, islands, spawnX, spawnY, npcPositions };
 };
