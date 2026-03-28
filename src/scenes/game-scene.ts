@@ -328,40 +328,31 @@ export class GameScene extends Phaser.Scene {
 			.text(0, 0, "", { fontSize: "14px", color: HUD_FRUIT_COLOR })
 			.setResolution(TEXT_RESOLUTION);
 
-		this.rexUI.add
-			.sizer({
-				orientation: 1,
-				x: camW - 16,
-				y: 16,
-				space: { left: 12, right: 12, top: 8, bottom: 8, item: 4 },
-			})
-			.addBackground(
-				this.rexUI.add.roundRectangle(0, 0, 0, 0, 8, 0x000000, 0.6),
-			)
-			.add(this.livesText, { align: "right" })
-			.add(this.fruitText, { align: "right" })
-			.layout()
+		// Lives panel — manual positioning (rexUI anchor doesn't work with scrollFactor)
+		this.livesText = this.add
+			.text(camW - 20, 14, "", { fontSize: "24px", color: HUD_LIVES_COLOR })
+			.setResolution(TEXT_RESOLUTION)
+			.setOrigin(1, 0)
+			.setScrollFactor(0)
+			.setDepth(UI_DEPTH);
+		this.fruitText = this.add
+			.text(camW - 20, 42, "", { fontSize: "16px", color: HUD_FRUIT_COLOR })
+			.setResolution(TEXT_RESOLUTION)
+			.setOrigin(1, 0)
 			.setScrollFactor(0)
 			.setDepth(UI_DEPTH);
 
-		// Top-center: Timer
+		// Timer — top center with background
 		this.timerText = this.add
-			.text(0, 0, "0:00", {
+			.text(camW / 2, 14, "0:00", {
 				fontSize: "20px",
 				color: HUD_TIMER_COLOR,
 				fontStyle: "bold",
+				backgroundColor: "#00000088",
+				padding: { x: 12, y: 6 },
 			})
-			.setResolution(TEXT_RESOLUTION);
-
-		this.rexUI.add
-			.label({
-				x: camW / 2,
-				y: 16,
-				background: this.rexUI.add.roundRectangle(0, 0, 0, 0, 8, 0x000000, 0.5),
-				text: this.timerText,
-				space: { left: 14, right: 14, top: 6, bottom: 6 },
-			})
-			.layout()
+			.setResolution(TEXT_RESOLUTION)
+			.setOrigin(0.5, 0)
 			.setScrollFactor(0)
 			.setDepth(UI_DEPTH);
 
@@ -495,7 +486,7 @@ export class GameScene extends Phaser.Scene {
 		this.handleGamepadActions();
 
 		// Water physics (fall if unsupported)
-		updateWater(this, this.grid, this.blockGroup);
+		updateWater(this, this.grid, this.blockGroup, lavaY);
 
 		// Hover highlight
 		this.updateHoverHighlight();

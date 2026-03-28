@@ -75,11 +75,13 @@ export const createDayNight = (scene: Phaser.Scene): DayNightCycle => {
 	mask.invertAlpha = true;
 	overlay.setMask(mask);
 
-	// Time indicator (HUD) — styled with icon
-	const timeIndicator = scene.add.text(10, 30, "", {
-		fontSize: "14px",
+	// Time indicator (HUD) — styled with background for readability
+	const timeIndicator = scene.add.text(10, 14, "", {
+		fontSize: "16px",
 		color: DAY_NIGHT_TEXT_COLOR,
 		fontStyle: "bold",
+		backgroundColor: "#00000088",
+		padding: { x: 8, y: 4 },
 	});
 	timeIndicator.setResolution(TEXT_RESOLUTION);
 	timeIndicator.setScrollFactor(0);

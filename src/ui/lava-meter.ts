@@ -26,6 +26,8 @@ export const createLavaMeter = (scene: Phaser.Scene): LavaMeterUI => {
 		{
 			fontSize: "14px",
 			color: HUD_LAVA_LABEL_COLOR,
+			backgroundColor: "#00000088",
+			padding: { x: 4, y: 2 },
 		},
 	);
 	label.setResolution(TEXT_RESOLUTION);
