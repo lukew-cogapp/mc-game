@@ -75,13 +75,13 @@ export const createDayNight = (scene: Phaser.Scene): DayNightCycle => {
 	mask.invertAlpha = true;
 	overlay.setMask(mask);
 
-	// Time indicator (HUD)
+	// Time indicator (HUD) — styled with icon
 	const timeIndicator = scene.add.text(10, 30, "", {
-		fontSize: "12px",
+		fontSize: "14px",
 		color: DAY_NIGHT_TEXT_COLOR,
-		backgroundColor: DAY_NIGHT_TEXT_BG_COLOR,
-		padding: { x: 4, y: 2 },
+		fontStyle: "bold",
 	});
+	timeIndicator.setResolution(2);
 	timeIndicator.setScrollFactor(0);
 	timeIndicator.setDepth(UI_DEPTH);
 
@@ -122,13 +122,11 @@ export const updateDayNight = (
 	const skyColor = lerpColor(DAY_SKY_COLOR, NIGHT_SKY_COLOR, darkness);
 	scene.cameras.main.setBackgroundColor(skyColor);
 
-	// Time indicator
+	// Time indicator with emoji icon
 	const isDay = darkness < 0.5;
-	const timeLabel = isDay ? "DAY" : "NIGHT";
+	const icon = isDay ? "\u2600\ufe0f" : "\u{1f319}";
 	const cycleNum = Math.floor(cycle.elapsed / DAY_NIGHT_CYCLE_MS) + 1;
-	cycle.timeIndicator.setText(`${timeLabel} (cycle ${cycleNum})`);
-
-	// Tint the indicator based on time
+	cycle.timeIndicator.setText(`${icon} Cycle ${cycleNum}`);
 	cycle.timeIndicator.setColor(
 		isDay ? DAY_NIGHT_DAY_COLOR : DAY_NIGHT_NIGHT_COLOR,
 	);

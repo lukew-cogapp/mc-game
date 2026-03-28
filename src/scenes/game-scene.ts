@@ -372,85 +372,55 @@ export class GameScene extends Phaser.Scene {
 		// Day/night cycle
 		this.dayNight = createDayNight(this);
 
-		// -- HUD: Top-left status panel --
-		const hudBgLeft = this.add.rectangle(
-			HUD_LEFT_X,
-			HUD_LEFT_X,
-			HUD_LEFT_W,
-			HUD_LEFT_H,
-			0x000000,
-			HUD_BG_ALPHA,
-		);
-		hudBgLeft.setOrigin(0, 0);
-		hudBgLeft.setScrollFactor(0);
-		hudBgLeft.setDepth(HUD_DEPTH);
-		const hudBgLeftBorder = this.add.graphics();
-		hudBgLeftBorder.lineStyle(1, 0xffffff, HUD_BORDER_ALPHA);
-		hudBgLeftBorder.strokeRoundedRect(
-			HUD_LEFT_X,
-			HUD_LEFT_X,
-			HUD_LEFT_W,
-			HUD_LEFT_H,
-			HUD_BORDER_RADIUS,
-		);
-		hudBgLeftBorder.setScrollFactor(0);
-		hudBgLeftBorder.setDepth(HUD_DEPTH);
-
-		// -- HUD: Top-right lives panel --
+		// -- HUD using rexUI --
 		const camW = this.cameras.main.width;
-		const hudBgRight = this.add.rectangle(
-			camW - HUD_LEFT_X,
-			HUD_LEFT_X,
-			HUD_RIGHT_W,
-			HUD_RIGHT_H,
-			0x000000,
-			HUD_BG_ALPHA,
-		);
-		hudBgRight.setOrigin(1, 0);
-		hudBgRight.setScrollFactor(0);
-		hudBgRight.setDepth(HUD_DEPTH);
-		const hudBgRightBorder = this.add.graphics();
-		hudBgRightBorder.lineStyle(1, 0xffffff, HUD_BORDER_ALPHA);
-		hudBgRightBorder.strokeRoundedRect(
-			camW - HUD_LEFT_X - HUD_RIGHT_W,
-			HUD_LEFT_X,
-			HUD_RIGHT_W,
-			HUD_RIGHT_H,
-			HUD_BORDER_RADIUS,
-		);
-		hudBgRightBorder.setScrollFactor(0);
-		hudBgRightBorder.setDepth(HUD_DEPTH);
 
-		this.livesText = this.add.text(camW - HUD_LIVES_OFFSET_X, HUD_LIVES_Y, "", {
-			fontSize: "22px",
-			color: HUD_LIVES_COLOR,
-		});
-		this.livesText.setResolution(2);
-		this.livesText.setOrigin(1, 0);
-		this.livesText.setScrollFactor(0);
-		this.livesText.setDepth(UI_DEPTH);
+		// Top-right: Lives + Fruit panel
+		this.livesText = this.add
+			.text(0, 0, "", { fontSize: "24px", color: HUD_LIVES_COLOR })
+			.setResolution(2);
+		this.fruitText = this.add
+			.text(0, 0, "", { fontSize: "14px", color: HUD_FRUIT_COLOR })
+			.setResolution(2);
 
-		this.fruitText = this.add.text(camW - HUD_LIVES_OFFSET_X, HUD_FRUIT_Y, "", {
-			fontSize: "14px",
-			color: HUD_FRUIT_COLOR,
-		});
-		this.fruitText.setResolution(2);
-		this.fruitText.setOrigin(1, 0);
-		this.fruitText.setScrollFactor(0);
-		this.fruitText.setDepth(UI_DEPTH);
+		this.rexUI.add
+			.sizer({
+				orientation: 1,
+				x: camW - 16,
+				y: 16,
+				space: { left: 12, right: 12, top: 8, bottom: 8, item: 4 },
+			})
+			.addBackground(
+				this.rexUI.add.roundRectangle(0, 0, 0, 0, 8, 0x000000, 0.6),
+			)
+			.add(this.livesText, { align: "right" })
+			.add(this.fruitText, { align: "right" })
+			.layout()
+			.setScrollFactor(0)
+			.setDepth(UI_DEPTH);
+
+		// Top-center: Timer
+		this.timerText = this.add
+			.text(0, 0, "0:00", {
+				fontSize: "20px",
+				color: HUD_TIMER_COLOR,
+				fontStyle: "bold",
+			})
+			.setResolution(2);
+
+		this.rexUI.add
+			.label({
+				x: camW / 2,
+				y: 16,
+				background: this.rexUI.add.roundRectangle(0, 0, 0, 0, 8, 0x000000, 0.5),
+				text: this.timerText,
+				space: { left: 14, right: 14, top: 6, bottom: 6 },
+			})
+			.layout()
+			.setScrollFactor(0)
+			.setDepth(UI_DEPTH);
 
 		this.updateLivesHUD();
-
-		// Timer HUD (top center)
-		this.timerText = this.add.text(this.cameras.main.width / 2, 14, "0:00", {
-			fontSize: "18px",
-			color: HUD_TIMER_COLOR,
-			fontStyle: "bold",
-		});
-		this.timerText.setResolution(2);
-		this.timerText.setOrigin(0.5, 0);
-		this.timerText.setScrollFactor(0);
-		this.timerText.setDepth(100);
 		this.gameTimer = 0;
 		// Lava progress meter (left side vertical bar)
 		this.lavaMeterGfx = this.add.graphics();

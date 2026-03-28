@@ -1,3 +1,4 @@
+import type UIPlugin from "phaser3-rex-plugins/templates/ui/ui-plugin.js";
 import {
 	formatTimeMs,
 	loadHighScores,
@@ -44,7 +45,6 @@ import {
 	TITLE_DICE_BG_COLOR,
 	TITLE_DICE_COLOR,
 	TITLE_DICE_HOVER_COLOR,
-	TITLE_DICE_OFFSET_Y,
 	TITLE_GAMEPAD_CONNECTED_COLOR,
 	TITLE_GLOW_ALPHA,
 	TITLE_GLOW_COLOR,
@@ -52,7 +52,6 @@ import {
 	TITLE_HOVER_COLOR,
 	TITLE_IDLE_BOUNCE_DURATION,
 	TITLE_IDLE_BOUNCE_Y,
-	TITLE_LEFT_PANEL_OFFSET_X,
 	TITLE_LEFT_PANEL_W,
 	TITLE_NAME_COLOR,
 	TITLE_NAME_OFFSET_Y,
@@ -83,8 +82,6 @@ import {
 	TITLE_RESET_CONFIRM_COLOR,
 	TITLE_RESET_CONFIRM_HOVER_COLOR,
 	TITLE_RESET_HOVER_COLOR,
-	TITLE_RIGHT_PANEL_OFFSET_X,
-	TITLE_RIGHT_PANEL_W,
 	TITLE_SCORE_COLOR,
 	TITLE_SCORE_GOLD_COLOR,
 	TITLE_SCORES_EMPTY_COLOR,
@@ -109,14 +106,12 @@ import {
 	TITLE_SUBTITLE_Y,
 	TITLE_TAB_ACTIVE_ALPHA,
 	TITLE_TAB_ACTIVE_COLOR,
-	TITLE_TAB_CONTENT_OFFSET_Y,
 	TITLE_TAB_CONTENT_PADDING,
 	TITLE_TAB_GAP,
 	TITLE_TAB_HOVER_ALPHA,
 	TITLE_TAB_HOVER_COLOR,
 	TITLE_TAB_INACTIVE_ALPHA,
 	TITLE_TAB_INACTIVE_COLOR,
-	TITLE_TAB_OFFSET_Y,
 	TITLE_TEXT_COLOR,
 	TITLE_TEXT_SHADOW_COLOR,
 	TITLE_TOGGLE_OFF_COLOR,
@@ -243,6 +238,8 @@ type TabName = (typeof TAB_LABELS)[number];
 // -- Scene --
 
 export class TitleScene extends Phaser.Scene {
+	declare rexUI: UIPlugin;
+
 	private selected = { body: 0, skin: 0, hat: 0, face: 0, trail: 0 };
 	private activeTab: TabName = "Outfit";
 
@@ -366,12 +363,12 @@ export class TitleScene extends Phaser.Scene {
 			.setOrigin(0.5);
 
 		// -- Left panel: Character preview --
-		const leftPanelX = cx + TITLE_LEFT_PANEL_OFFSET_X;
+		const leftPanelX = cx - 200;
 		const panelTop = TITLE_PANEL_TOP;
 		const panelW = TITLE_LEFT_PANEL_W;
 		const panelH = TITLE_PANEL_H;
 
-		// Panel background
+		// Panel background using rexUI roundRectangle
 		this.drawPanel(leftPanelX - panelW / 2, panelTop, panelW, panelH);
 
 		// Mini floating island platform
@@ -455,24 +452,34 @@ export class TitleScene extends Phaser.Scene {
 			})
 			.setOrigin(0.5);
 
-		// Randomize button under name
-		const diceBtn = this.add
-			.text(
-				leftPanelX,
-				panelTop + panelH - TITLE_DICE_OFFSET_Y,
-				"\u{1f3b2} Randomize",
-				{
-					fontSize: "14px",
-					color: TITLE_DICE_COLOR,
-					backgroundColor: TITLE_DICE_BG_COLOR,
-					padding: { x: 10, y: 4 },
-				},
-			)
-			.setOrigin(0.5)
-			.setInteractive({ useHandCursor: true });
-		diceBtn.on("pointerover", () => diceBtn.setColor(TITLE_DICE_HOVER_COLOR));
-		diceBtn.on("pointerout", () => diceBtn.setColor(TITLE_DICE_COLOR));
-		diceBtn.on("pointerdown", () => {
+		// Randomize button — rexUI Label with RoundRectangle background
+		const diceBtnLabel = this.rexUI.add.label({
+			background: this.rexUI.add.roundRectangle(
+				0,
+				0,
+				0,
+				0,
+				6,
+				Phaser.Display.Color.HexStringToColor(TITLE_DICE_BG_COLOR).color,
+			),
+			text: this.add.text(0, 0, "\u{1f3b2} Randomize", {
+				fontSize: "14px",
+				color: TITLE_DICE_COLOR,
+			}),
+			space: { left: 10, right: 10, top: 4, bottom: 4 },
+		});
+		diceBtnLabel.setPosition(leftPanelX, panelTop + panelH - 20);
+		diceBtnLabel.layout();
+		diceBtnLabel.setInteractive({ useHandCursor: true });
+		diceBtnLabel.on("pointerover", () => {
+			const txt = diceBtnLabel.getElement("text") as Phaser.GameObjects.Text;
+			txt.setColor(TITLE_DICE_HOVER_COLOR);
+		});
+		diceBtnLabel.on("pointerout", () => {
+			const txt = diceBtnLabel.getElement("text") as Phaser.GameObjects.Text;
+			txt.setColor(TITLE_DICE_COLOR);
+		});
+		diceBtnLabel.on("pointerdown", () => {
 			this.selected.body = Math.floor(Math.random() * CHARACTER_COLORS.length);
 			this.selected.skin = Math.floor(Math.random() * SKIN_COLORS.length);
 			this.selected.hat = Math.floor(Math.random() * HAT_TYPES.length);
@@ -490,8 +497,8 @@ export class TitleScene extends Phaser.Scene {
 		});
 
 		// -- Right panel: Customization --
-		const rightPanelX = cx + TITLE_RIGHT_PANEL_OFFSET_X;
-		const rightPanelW = TITLE_RIGHT_PANEL_W;
+		const rightPanelX = cx + 120;
+		const rightPanelW = 320;
 
 		this.drawPanel(
 			rightPanelX - rightPanelW / 2,
@@ -501,7 +508,7 @@ export class TitleScene extends Phaser.Scene {
 		);
 
 		// Tab bar
-		const tabY = panelTop + TITLE_TAB_OFFSET_Y;
+		const tabY = panelTop + 20;
 		this.tabButtons = [];
 		this.tabIndicators = [];
 		const tabGap = TITLE_TAB_GAP;
@@ -538,11 +545,7 @@ export class TitleScene extends Phaser.Scene {
 
 			tabBtn.on("pointerdown", () => {
 				this.activeTab = tabName;
-				this.renderTabContent(
-					rightPanelX,
-					panelTop + TITLE_TAB_CONTENT_OFFSET_Y,
-					rightPanelW,
-				);
+				this.renderTabContent(rightPanelX, panelTop + 42, rightPanelW);
 				this.updateTabBar();
 			});
 			tabBtn.on("pointerover", () => {
@@ -566,67 +569,53 @@ export class TitleScene extends Phaser.Scene {
 
 		// Tab content container
 		this.tabContainer = this.add.container(0, 0);
-		this.renderTabContent(
-			rightPanelX,
-			panelTop + TITLE_TAB_CONTENT_OFFSET_Y,
-			rightPanelW,
-		);
+		this.renderTabContent(rightPanelX, panelTop + 42, rightPanelW);
 
 		// -- Bottom: Start button --
 		const bottomY = panelTop + panelH + TITLE_START_BTN_OFFSET_Y;
 
-		// Start button — clickable zone covers the full button area
-		const btnW = TITLE_START_BTN_W;
-		const btnH = TITLE_START_BTN_H;
-		const startBg = this.add.graphics();
+		// Start button — rexUI Label with RoundRectangle background
+		const startBtnBg = this.rexUI.add.roundRectangle(
+			0,
+			0,
+			TITLE_START_BTN_W,
+			TITLE_START_BTN_H,
+			TITLE_START_BTN_RADIUS,
+			TITLE_START_BTN_FILL,
+		);
+		startBtnBg.setStrokeStyle(2, TITLE_START_BTN_STROKE);
 
-		const drawStartBg = (fill: number, stroke: number) => {
-			startBg.clear();
-			startBg.fillStyle(fill);
-			startBg.fillRoundedRect(
-				cx - btnW / 2,
-				bottomY - btnH / 2,
-				btnW,
-				btnH,
-				TITLE_START_BTN_RADIUS,
-			);
-			startBg.lineStyle(2, stroke);
-			startBg.strokeRoundedRect(
-				cx - btnW / 2,
-				bottomY - btnH / 2,
-				btnW,
-				btnH,
-				TITLE_START_BTN_RADIUS,
-			);
-		};
-		drawStartBg(TITLE_START_BTN_FILL, TITLE_START_BTN_STROKE);
+		const startLabel = this.add.text(0, 0, "\u25b6  PLAY", {
+			fontSize: "30px",
+			color: TITLE_START_LABEL_COLOR,
+			fontStyle: "bold",
+		});
 
-		const startLabel = this.add
-			.text(cx, bottomY, "\u25b6  PLAY", {
-				fontSize: "30px",
-				color: TITLE_START_LABEL_COLOR,
-				fontStyle: "bold",
-			})
-			.setOrigin(0.5);
-
-		// Invisible interactive rect over the entire button
-		const startHitZone = this.add
-			.rectangle(cx, bottomY, btnW, btnH, 0x000000, 0)
-			.setInteractive({ useHandCursor: true });
+		const startBtnLabel = this.rexUI.add.label({
+			background: startBtnBg,
+			text: startLabel,
+			space: { left: 20, right: 20, top: 8, bottom: 8 },
+			align: "center",
+		});
+		startBtnLabel.setPosition(cx, bottomY);
+		startBtnLabel.layout();
+		startBtnLabel.setInteractive({ useHandCursor: true });
 
 		const startGame = () => {
 			this.scene.start("GameScene", this.buildConfig());
 		};
 
-		startHitZone.on("pointerover", () => {
+		startBtnLabel.on("pointerover", () => {
 			startLabel.setScale(1.08);
-			drawStartBg(TITLE_START_BTN_HOVER_FILL, TITLE_START_BTN_HOVER_STROKE);
+			startBtnBg.setFillStyle(TITLE_START_BTN_HOVER_FILL);
+			startBtnBg.setStrokeStyle(2, TITLE_START_BTN_HOVER_STROKE);
 		});
-		startHitZone.on("pointerout", () => {
+		startBtnLabel.on("pointerout", () => {
 			startLabel.setScale(1);
-			drawStartBg(TITLE_START_BTN_FILL, TITLE_START_BTN_STROKE);
+			startBtnBg.setFillStyle(TITLE_START_BTN_FILL);
+			startBtnBg.setStrokeStyle(2, TITLE_START_BTN_STROKE);
 		});
-		startHitZone.on("pointerdown", startGame);
+		startBtnLabel.on("pointerdown", startGame);
 
 		// Enter to start
 		if (this.input.keyboard) {
@@ -813,48 +802,50 @@ export class TitleScene extends Phaser.Scene {
 				y + row * (TITLE_CELL_SIZE + TITLE_CELL_GAP) + TITLE_CELL_SIZE / 2;
 			const isSelected = i === selectedIdx;
 
-			// Cell background
-			const cell = this.add.rectangle(
+			// Cell background — rexUI RoundRectangle
+			const cellBg = this.rexUI.add.roundRectangle(
 				cellX,
 				cellY,
 				TITLE_CELL_SIZE,
 				TITLE_CELL_SIZE,
+				4,
 				TITLE_CELL_BG,
 			);
-			cell.setStrokeStyle(
+			cellBg.setStrokeStyle(
 				isSelected ? 3 : 2,
 				isSelected ? TITLE_CELL_SELECTED_BORDER : TITLE_CELL_UNSELECTED_BORDER,
 			);
-			cell.setInteractive({ useHandCursor: true });
-			this.tabContainer.add(cell);
+			cellBg.setInteractive({ useHandCursor: true });
+			this.tabContainer.add(cellBg);
 
-			// Color swatch
-			const swatch = this.add.rectangle(
+			// Color swatch — rexUI RoundRectangle
+			const swatch = this.rexUI.add.roundRectangle(
 				cellX,
 				cellY,
 				TITLE_CELL_SIZE - 10,
 				TITLE_CELL_SIZE - 10,
+				3,
 				colors[i],
 			);
 			this.tabContainer.add(swatch);
 
 			// Hover
-			cell.on("pointerover", () => {
+			cellBg.on("pointerover", () => {
 				if (i !== selectedIdx) {
-					cell.setFillStyle(TITLE_CELL_BG_HOVER);
-					cell.setScale(1.05);
+					cellBg.setFillStyle(TITLE_CELL_BG_HOVER);
+					cellBg.setScale(1.05);
 					swatch.setScale(1.05);
 				}
 			});
-			cell.on("pointerout", () => {
-				cell.setFillStyle(TITLE_CELL_BG);
-				cell.setScale(1);
+			cellBg.on("pointerout", () => {
+				cellBg.setFillStyle(TITLE_CELL_BG);
+				cellBg.setScale(1);
 				swatch.setScale(1);
 			});
-			cell.on("pointerdown", () => {
+			cellBg.on("pointerdown", () => {
 				// Scale tween on select
 				this.tweens.add({
-					targets: [cell, swatch],
+					targets: [cellBg, swatch],
 					scale: 1.12,
 					duration: 50,
 					yoyo: true,
@@ -884,41 +875,43 @@ export class TitleScene extends Phaser.Scene {
 			const isSelected = i === selectedIdx;
 			const key = types[i] as T[number];
 
-			const cell = this.add.rectangle(
+			// Cell background — rexUI RoundRectangle
+			const cellBg = this.rexUI.add.roundRectangle(
 				cellX,
 				cellY,
 				TITLE_CELL_SIZE,
 				TITLE_CELL_SIZE,
+				4,
 				TITLE_CELL_BG,
 			);
-			cell.setStrokeStyle(
+			cellBg.setStrokeStyle(
 				isSelected ? 3 : 2,
 				isSelected ? TITLE_CELL_SELECTED_BORDER : TITLE_CELL_UNSELECTED_BORDER,
 			);
-			cell.setInteractive({ useHandCursor: true });
-			this.tabContainer.add(cell);
+			cellBg.setInteractive({ useHandCursor: true });
+			this.tabContainer.add(cellBg);
 
 			const emoji = this.add
 				.text(cellX, cellY, emojis[key], { fontSize: "20px" })
 				.setOrigin(0.5);
 			this.tabContainer.add(emoji);
 
-			cell.on("pointerover", () => {
+			cellBg.on("pointerover", () => {
 				if (i !== selectedIdx) {
-					cell.setFillStyle(TITLE_CELL_BG_HOVER);
-					cell.setScale(1.05);
+					cellBg.setFillStyle(TITLE_CELL_BG_HOVER);
+					cellBg.setScale(1.05);
 					emoji.setScale(1.05);
 				}
 			});
-			cell.on("pointerout", () => {
-				cell.setFillStyle(TITLE_CELL_BG);
-				cell.setScale(1);
+			cellBg.on("pointerout", () => {
+				cellBg.setFillStyle(TITLE_CELL_BG);
+				cellBg.setScale(1);
 				emoji.setScale(1);
 			});
-			cell.on("pointerdown", () => {
+			cellBg.on("pointerdown", () => {
 				// Quick scale tween on the cell
 				this.tweens.add({
-					targets: [cell, emoji],
+					targets: [cellBg, emoji],
 					scale: 1.15,
 					duration: 40,
 					yoyo: true,
@@ -967,27 +960,21 @@ export class TitleScene extends Phaser.Scene {
 		backdrop.on("pointerdown", () => this.toggleControls());
 		this.controlsOverlay.add(backdrop);
 
-		// Card
+		// Card — rexUI RoundRectangle for background
 		const cardW = TITLE_CONTROLS_CARD_W;
 		const cardH = TITLE_CONTROLS_CARD_H;
-		const cardGfx = this.add.graphics();
-		cardGfx.fillStyle(TITLE_PANEL_BG, 0.95);
-		cardGfx.lineStyle(1, TITLE_PANEL_BORDER);
-		cardGfx.fillRoundedRect(
-			cx - cardW / 2,
-			cy - cardH / 2,
+
+		const cardBg = this.rexUI.add.roundRectangle(
+			cx,
+			cy,
 			cardW,
 			cardH,
 			TITLE_PANEL_RADIUS,
+			TITLE_PANEL_BG,
+			TITLE_PANEL_ALPHA,
 		);
-		cardGfx.strokeRoundedRect(
-			cx - cardW / 2,
-			cy - cardH / 2,
-			cardW,
-			cardH,
-			TITLE_PANEL_RADIUS,
-		);
-		this.controlsOverlay.add(cardGfx);
+		cardBg.setStrokeStyle(1, TITLE_PANEL_BORDER);
+		this.controlsOverlay.add(cardBg);
 
 		const headerText = this.add
 			.text(cx, cy - cardH / 2 + 24, "CONTROLS", {
@@ -1107,12 +1094,8 @@ export class TitleScene extends Phaser.Scene {
 		// Re-render active tab to update selection highlights
 		const { width } = this.cameras.main;
 		const cx = width / 2;
-		const rightPanelX = cx + TITLE_RIGHT_PANEL_OFFSET_X;
-		this.renderTabContent(
-			rightPanelX,
-			TITLE_PANEL_TOP + TITLE_TAB_CONTENT_OFFSET_Y,
-			TITLE_RIGHT_PANEL_W,
-		);
+		const rightPanelX = cx + 120;
+		this.renderTabContent(rightPanelX, TITLE_PANEL_TOP + 42, 320);
 		this.updateTabBar();
 
 		saveConfig(this.selected);
