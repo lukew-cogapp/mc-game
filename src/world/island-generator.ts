@@ -845,6 +845,43 @@ export const generateWorld = (): {
 		addDecorations(grid, island);
 	}
 
+	// 4b. Scatter jetpack power-ups on mid-to-high islands
+	const jetpackCount = randomRange(
+		JETPACK_SPAWN_COUNT_MIN,
+		JETPACK_SPAWN_COUNT_MAX,
+	);
+	const midHighIslands = islands.filter((isl) => {
+		const heightRatio = 1 - (isl.y - chainTopY) / (chainBottomY - chainTopY);
+		return (
+			heightRatio >= STARTER_ZONE_RATIO &&
+			isl.role !== "goal" &&
+			isl.role !== "transit" &&
+			isl.width >= 4
+		);
+	});
+	// Shuffle candidates
+	for (let i = midHighIslands.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[midHighIslands[i], midHighIslands[j]] = [
+			midHighIslands[j],
+			midHighIslands[i],
+		];
+	}
+	for (let jp = 0; jp < Math.min(jetpackCount, midHighIslands.length); jp++) {
+		const isl = midHighIslands[jp];
+		const wx = isl.x + randomRange(1, isl.width - 2);
+		const wy = isl.y - 1;
+		if (
+			wy >= 0 &&
+			wy < WORLD_HEIGHT_TILES &&
+			wx >= 0 &&
+			wx < WORLD_WIDTH_TILES &&
+			grid[wy][wx] === BlockType.Air
+		) {
+			grid[wy][wx] = BlockType.Jetpack;
+		}
+	}
+
 	// 5. Clear spawn area
 	const spawnTileX = Math.floor(homeIsland.x + homeIsland.width / 2);
 	const spawnTileY = homeIsland.y - PLAYER_RESPAWN_OFFSET_Y;

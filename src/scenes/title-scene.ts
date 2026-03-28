@@ -642,6 +642,9 @@ export class TitleScene extends Phaser.Scene {
 			this.input.keyboard.on("keydown-ENTER", startGame);
 		}
 
+		// -- High Scores Section --
+		this.buildHighScoresSection(cx, bottomY + TITLE_SCORES_OFFSET_Y);
+
 		// Gamepad support
 		if (this.input.gamepad) {
 			// Show hint if no gamepad detected yet
@@ -1164,6 +1167,91 @@ export class TitleScene extends Phaser.Scene {
 		createToggle("SFX", this.settings.sfxEnabled, 0, (val) => {
 			this.settings.sfxEnabled = val;
 			saveSettings(this.settings);
+		});
+	};
+
+	private buildHighScoresSection = (cx: number, topY: number): void => {
+		const scores = loadHighScores();
+
+		// Header
+		this.add
+			.text(cx, topY, "HIGH SCORES", {
+				fontSize: TITLE_SCORES_HEADER_FONT_SIZE,
+				color: "#ffdd44",
+				fontStyle: "bold",
+			})
+			.setOrigin(0.5);
+
+		if (scores.length === 0) {
+			this.add
+				.text(cx, topY + TITLE_SCORES_ROW_HEIGHT, "No scores yet", {
+					fontSize: TITLE_SCORES_EMPTY_FONT_SIZE,
+					color: "#666688",
+					fontStyle: "italic",
+				})
+				.setOrigin(0.5);
+		} else {
+			for (let i = 0; i < scores.length; i++) {
+				const entry = scores[i];
+				const rowY = topY + TITLE_SCORES_ROW_HEIGHT * (i + 1);
+				this.add
+					.text(cx, rowY, `#${i + 1}  ${formatTimeMs(entry.timeMs)}`, {
+						fontSize: TITLE_SCORES_ROW_FONT_SIZE,
+						color: i === 0 ? "#ffd700" : "#aaaaaa",
+					})
+					.setOrigin(0.5);
+			}
+		}
+
+		// Reset button
+		const resetY =
+			topY +
+			TITLE_SCORES_ROW_HEIGHT * (Math.max(scores.length, 1) + 1) +
+			TITLE_RESET_BTN_OFFSET_Y;
+
+		let confirmPending = false;
+		let confirmTimer: Phaser.Time.TimerEvent | null = null;
+
+		const resetBtn = this.add
+			.text(cx, resetY, "Reset Scores", {
+				fontSize: TITLE_RESET_BTN_FONT_SIZE,
+				color: "#555577",
+			})
+			.setOrigin(0.5)
+			.setInteractive({ useHandCursor: true });
+
+		const revertReset = () => {
+			confirmPending = false;
+			confirmTimer = null;
+			resetBtn.setText("Reset Scores");
+			resetBtn.setColor("#555577");
+		};
+
+		resetBtn.on("pointerover", () => {
+			resetBtn.setColor(confirmPending ? "#ff6666" : "#aaaacc");
+		});
+		resetBtn.on("pointerout", () => {
+			resetBtn.setColor(confirmPending ? "#ff4444" : "#555577");
+		});
+		resetBtn.on("pointerdown", () => {
+			if (confirmPending) {
+				// Second click — reset
+				if (confirmTimer) confirmTimer.destroy();
+				confirmTimer = null;
+				confirmPending = false;
+				resetHighScores();
+				// Rebuild the scene to reflect cleared scores
+				this.scene.restart();
+			} else {
+				// First click — ask for confirmation
+				confirmPending = true;
+				resetBtn.setText("Are you sure? Click again");
+				resetBtn.setColor("#ff4444");
+				confirmTimer = this.time.delayedCall(
+					HIGH_SCORE_RESET_CONFIRM_MS,
+					revertReset,
+				);
+			}
 		});
 	};
 }

@@ -30,14 +30,6 @@ import {
 } from "../config";
 import type { Island } from "../types";
 
-export interface NPC {
-	x: number;
-	y: number;
-	container: Phaser.GameObjects.Container;
-	dialogueLines: string[];
-	isActive: boolean;
-}
-
 const DIALOGUE_POOL: string[] = [
 	"The view from up here is amazing!",
 	"Watch out for the lava! It's getting closer...",
@@ -96,95 +88,6 @@ export const pickNpcSpawnPositions = (
 	return positions;
 };
 
-export const createNpcs = (
-	scene: Phaser.Scene,
-	spawnPositions: { x: number; y: number }[],
-): NPC[] => {
-	return spawnPositions.map((pos) => {
-		// Body (small colored rectangle)
-		const body = scene.add.rectangle(
-			0,
-			0,
-			NPC_BODY_WIDTH,
-			NPC_BODY_HEIGHT,
-			NPC_BODY_COLOR,
-		);
-
-		// Head (circle on top)
-		const head = scene.add.circle(
-			0,
-			-NPC_BODY_HEIGHT / 2 - NPC_HEAD_RADIUS,
-			NPC_HEAD_RADIUS,
-			NPC_HEAD_COLOR,
-		);
-
-		// Tiny eyes for character
-		const eyeY = -NPC_BODY_HEIGHT / 2 - NPC_HEAD_RADIUS;
-		const leftEye = scene.add.circle(
-			-NPC_EYE_OFFSET_X,
-			eyeY,
-			NPC_EYE_RADIUS,
-			NPC_EYE_COLOR,
-		);
-		const rightEye = scene.add.circle(
-			NPC_EYE_OFFSET_X,
-			eyeY,
-			NPC_EYE_RADIUS,
-			NPC_EYE_COLOR,
-		);
-
-		const container = scene.add.container(pos.x, pos.y, [
-			body,
-			head,
-			leftEye,
-			rightEye,
-		]);
-		container.setDepth(NPC_CONTAINER_DEPTH);
-
-		// Idle bob tween
-		scene.tweens.add({
-			targets: container,
-			y: pos.y - NPC_BOB_AMPLITUDE,
-			duration: NPC_BOB_DURATION,
-			yoyo: true,
-			repeat: -1,
-			ease: "Sine.easeInOut",
-		});
-
-		return {
-			x: pos.x,
-			y: pos.y,
-			container,
-			dialogueLines: pickRandomLines(NPC_DIALOGUE_LINE_COUNT),
-			isActive: false,
-		};
-	});
-};
-
-interface SpeechBubble {
-	container: Phaser.GameObjects.Container;
-	npcIndex: number;
-	currentLineIndex: number;
-	cycleTimer: number;
-	fadeTween: Phaser.Tweens.Tween | null;
-}
-
-export interface NpcManager {
-	npcs: NPC[];
-	bubbles: Map<number, SpeechBubble>;
-}
-
-export const createNpcManager = (
-	scene: Phaser.Scene,
-	spawnPositions: { x: number; y: number }[],
-): NpcManager => {
-	const npcs = createNpcs(scene, spawnPositions);
-	return {
-		npcs,
-		bubbles: new Map(),
-	};
-};
-
 /** Build the text + background graphics for a speech bubble and return them. */
 const buildBubbleContent = (
 	scene: Phaser.Scene,
@@ -228,113 +131,160 @@ const buildBubbleContent = (
 	return { bg, textObj, bubbleHeight };
 };
 
-const createSpeechBubble = (
-	scene: Phaser.Scene,
-	npc: NPC,
-	npcIndex: number,
-	text: string,
-): SpeechBubble => {
-	const { bg, textObj, bubbleHeight } = buildBubbleContent(scene, text);
+export class Npc extends Phaser.GameObjects.Container {
+	private dialogueLines: string[];
+	private bubble: Phaser.GameObjects.Container | null = null;
+	private dialogueIndex = 0;
+	private dialogueTimer = 0;
+	private fadeTween: Phaser.Tweens.Tween | null = null;
+	private spawnX: number;
+	private spawnY: number;
 
-	const bubbleContainer = scene.add.container(
-		npc.container.x,
-		npc.container.y - NPC_BUBBLE_OFFSET_Y - bubbleHeight / 2,
-		[bg, textObj],
-	);
-	bubbleContainer.setDepth(NPC_BUBBLE_DEPTH);
-	bubbleContainer.setAlpha(0);
+	constructor(scene: Phaser.Scene, x: number, y: number) {
+		super(scene, x, y);
+		scene.add.existing(this);
 
-	// Fade in
-	scene.tweens.add({
-		targets: bubbleContainer,
-		alpha: 1,
-		duration: NPC_BUBBLE_FADE_DURATION,
-	});
+		this.spawnX = x;
+		this.spawnY = y;
 
-	return {
-		container: bubbleContainer,
-		npcIndex,
-		currentLineIndex: 0,
-		cycleTimer: 0,
-		fadeTween: null,
-	};
-};
+		// Body (small colored rectangle)
+		const body = scene.add.rectangle(
+			0,
+			0,
+			NPC_BODY_WIDTH,
+			NPC_BODY_HEIGHT,
+			NPC_BODY_COLOR,
+		);
 
-const updateBubbleText = (
-	scene: Phaser.Scene,
-	bubble: SpeechBubble,
-	npc: NPC,
-): void => {
-	bubble.container.removeAll(true);
+		// Head (circle on top)
+		const head = scene.add.circle(
+			0,
+			-NPC_BODY_HEIGHT / 2 - NPC_HEAD_RADIUS,
+			NPC_HEAD_RADIUS,
+			NPC_HEAD_COLOR,
+		);
 
-	const text = npc.dialogueLines[bubble.currentLineIndex];
-	const { bg, textObj, bubbleHeight } = buildBubbleContent(scene, text);
+		// Tiny eyes for character
+		const eyeY = -NPC_BODY_HEIGHT / 2 - NPC_HEAD_RADIUS;
+		const leftEye = scene.add.circle(
+			-NPC_EYE_OFFSET_X,
+			eyeY,
+			NPC_EYE_RADIUS,
+			NPC_EYE_COLOR,
+		);
+		const rightEye = scene.add.circle(
+			NPC_EYE_OFFSET_X,
+			eyeY,
+			NPC_EYE_RADIUS,
+			NPC_EYE_COLOR,
+		);
 
-	bubble.container.add([bg, textObj]);
-	bubble.container.setPosition(
-		npc.container.x,
-		npc.container.y - NPC_BUBBLE_OFFSET_Y - bubbleHeight / 2,
-	);
-};
+		this.add([body, head, leftEye, rightEye]);
+		this.setDepth(NPC_CONTAINER_DEPTH);
 
-export const updateNpcs = (
-	scene: Phaser.Scene,
-	manager: NpcManager,
-	playerX: number,
-	playerY: number,
-	delta: number,
-): void => {
-	const interactDist = NPC_INTERACT_RANGE * TILE_SIZE;
+		// Pick random dialogue
+		this.dialogueLines = pickRandomLines(NPC_DIALOGUE_LINE_COUNT);
 
-	for (let i = 0; i < manager.npcs.length; i++) {
-		const npc = manager.npcs[i];
-		const dx = playerX - npc.x;
-		const dy = playerY - npc.y;
+		// Idle bob tween
+		scene.tweens.add({
+			targets: this,
+			y: y - NPC_BOB_AMPLITUDE,
+			duration: NPC_BOB_DURATION,
+			yoyo: true,
+			repeat: -1,
+			ease: "Sine.easeInOut",
+		});
+	}
+
+	update = (playerX: number, playerY: number, delta: number): void => {
+		const interactDist = NPC_INTERACT_RANGE * TILE_SIZE;
+		const dx = playerX - this.spawnX;
+		const dy = playerY - this.spawnY;
 		const dist = Math.sqrt(dx * dx + dy * dy);
-
 		const inRange = dist <= interactDist;
-		const existingBubble = manager.bubbles.get(i);
 
-		if (inRange && !existingBubble) {
+		if (inRange && !this.bubble) {
 			// Player just entered range: show speech bubble
-			npc.isActive = true;
-			const bubble = createSpeechBubble(scene, npc, i, npc.dialogueLines[0]);
-			manager.bubbles.set(i, bubble);
-		} else if (inRange && existingBubble) {
+			this.dialogueIndex = 0;
+			this.dialogueTimer = 0;
+			this.fadeTween = null;
+			this.createBubble();
+		} else if (inRange && this.bubble) {
 			// Player still in range: cycle dialogue
-			existingBubble.cycleTimer += delta;
-			if (existingBubble.cycleTimer >= NPC_DIALOGUE_CYCLE_MS) {
-				existingBubble.cycleTimer = 0;
-				existingBubble.currentLineIndex =
-					(existingBubble.currentLineIndex + 1) % npc.dialogueLines.length;
-				updateBubbleText(scene, existingBubble, npc);
+			this.dialogueTimer += delta;
+			if (this.dialogueTimer >= NPC_DIALOGUE_CYCLE_MS) {
+				this.dialogueTimer = 0;
+				this.dialogueIndex =
+					(this.dialogueIndex + 1) % this.dialogueLines.length;
+				this.updateBubbleText();
 			}
 
 			// Keep bubble position synced with NPC bob
-			const textObj = existingBubble.container.getAll()[1] as
-				| Phaser.GameObjects.Text
-				| undefined;
-			const bubbleHeight = textObj
-				? textObj.height + NPC_BUBBLE_PADDING_Y * 2
-				: NPC_BUBBLE_FALLBACK_HEIGHT;
-			existingBubble.container.setPosition(
-				npc.container.x,
-				npc.container.y - NPC_BUBBLE_OFFSET_Y - bubbleHeight / 2,
-			);
-		} else if (!inRange && existingBubble) {
+			this.syncBubblePosition();
+		} else if (!inRange && this.bubble) {
 			// Player left range: fade out and remove
-			npc.isActive = false;
-			if (!existingBubble.fadeTween) {
-				existingBubble.fadeTween = scene.tweens.add({
-					targets: existingBubble.container,
+			if (!this.fadeTween) {
+				this.fadeTween = this.scene.tweens.add({
+					targets: this.bubble,
 					alpha: 0,
 					duration: NPC_BUBBLE_FADE_DURATION,
 					onComplete: () => {
-						existingBubble.container.destroy();
-						manager.bubbles.delete(i);
+						this.bubble?.destroy();
+						this.bubble = null;
+						this.fadeTween = null;
 					},
 				});
 			}
 		}
-	}
-};
+	};
+
+	private createBubble = (): void => {
+		const text = this.dialogueLines[this.dialogueIndex];
+		const { bg, textObj, bubbleHeight } = buildBubbleContent(this.scene, text);
+
+		this.bubble = this.scene.add.container(
+			this.x,
+			this.y - NPC_BUBBLE_OFFSET_Y - bubbleHeight / 2,
+			[bg, textObj],
+		);
+		this.bubble.setDepth(NPC_BUBBLE_DEPTH);
+		this.bubble.setAlpha(0);
+
+		// Fade in
+		this.scene.tweens.add({
+			targets: this.bubble,
+			alpha: 1,
+			duration: NPC_BUBBLE_FADE_DURATION,
+		});
+	};
+
+	private updateBubbleText = (): void => {
+		if (!this.bubble) return;
+
+		this.bubble.removeAll(true);
+
+		const text = this.dialogueLines[this.dialogueIndex];
+		const { bg, textObj, bubbleHeight } = buildBubbleContent(this.scene, text);
+
+		this.bubble.add([bg, textObj]);
+		this.bubble.setPosition(
+			this.x,
+			this.y - NPC_BUBBLE_OFFSET_Y - bubbleHeight / 2,
+		);
+	};
+
+	private syncBubblePosition = (): void => {
+		if (!this.bubble) return;
+
+		const textObj = this.bubble.getAll()[1] as
+			| Phaser.GameObjects.Text
+			| undefined;
+		const bubbleHeight = textObj
+			? textObj.height + NPC_BUBBLE_PADDING_Y * 2
+			: NPC_BUBBLE_FALLBACK_HEIGHT;
+		this.bubble.setPosition(
+			this.x,
+			this.y - NPC_BUBBLE_OFFSET_Y - bubbleHeight / 2,
+		);
+	};
+}

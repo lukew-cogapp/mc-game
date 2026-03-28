@@ -22,50 +22,50 @@ Pre-commit hooks (lefthook) run lint, typecheck, and test in parallel.
 
 ## Code Conventions
 
-- **Fat arrow functions everywhere** — never use `function` declarations. Use `const fn = () => {}` style.
-- **All magic numbers in `src/config.ts`** — named constants organized by category. Never inline numeric/string literals.
+- **Fat arrow functions everywhere** — never use `function` declarations. Class methods use property arrow syntax.
+- **All magic numbers in `src/config.ts`** — 500+ named constants organized by category (prefixed: `TITLE_*`, `GAMEOVER_*`, `VICTORY_*`, `HUD_*`, etc.). Never inline numeric/string literals.
 - **Biome linter** — tabs, double quotes, recommended rules. Run `npx biome check --fix .` after changes. If biome says something is fixable, use the CLI before manual edits.
-- **No external textures** — all visuals are procedurally drawn (Phaser rectangles, circles, Graphics primitives). Block textures stamped at runtime via `createWorldTextures()`.
+- **No external assets** — all visuals are procedurally drawn (Graphics primitives, generated textures). Music is procedurally generated via Web Audio API.
 - **Scene cleanup** — all scenes register `shutdown` handlers to remove input listeners, preventing accumulation across scene restarts.
-- **Gamepad via raw browser API** — uses `navigator.getGamepads()` directly (not Phaser's GamepadPlugin) for reliable cross-scene support. Filters out non-gamepad devices (requires 2+ axes, 10+ buttons).
+- **Gamepad via raw browser API** — uses `navigator.getGamepads()` directly (not Phaser's GamepadPlugin). Filters non-gamepad devices (requires 2+ axes, 10+ buttons).
+- **Shared sets** — `NON_SOLID_BLOCKS` is defined once in `types.ts` and imported everywhere.
 
 ## Architecture
 
-**Three Phaser scenes:** `TitleScene` (character customization) → `GameScene` (gameplay) → `GameOverScene` (death screen, back to title).
+**Four Phaser scenes:** `TitleScene` → `GameScene` → `GameOverScene` / `VictoryScene` → back to title.
 
 **GameScene update loop order:**
-1. `updateLava()` — rise lava, get lavaY
-2. `updateLavaGlow()` — red danger gradient above lava
-3. `createGameInput()` + `updatePlayer()` — physics, collision, movement, death check
-4. `collectFruit()` — eat fruit blocks on overlap, track toward life recovery
-5. `handleBlockBreak()` — left-click / X button mining with crack animation
-6. `handleGamepadActions()` — LB/RB inventory, X break, B place
-7. `updateWater()` — cascade water blocks downward
-8. `updateHoverHighlight()` — highlight block under cursor if in range
-9. `updateDayNight()` — cycle lighting, resize vision mask
-10. `updateClouds()` / `updateLeafParticles()` / `updateAmbientParticles()` — visual polish
+1. Lava: rise + danger glow
+2. Player: input → physics (acceleration, coyote time, jump buffer) → collision → death/win check
+3. Pickups: fruit collection (10 = +1 life), jetpack fuel collection
+4. Block interaction: break (mouse/gamepad) + place (mouse/gamepad) + right-stick targeting
+5. Gamepad actions: LB/RB inventory, X break, B place
+6. World: water cascade, NPC dialogue proximity
+7. Visuals: hover highlight, day/night cycle, clouds, leaves, ambient particles, lava meter
+8. HUD: lives, fruit counter, jetpack fuel bar, timer
 
-**World system:** `BlockType[][]` grid (200x100 tiles, 32px each). No Phaser physics — collision is manual grid-based checking in `player.ts`. Block sprites created/destroyed at runtime as the grid changes.
+**World system:** `BlockType[][]` grid (200x100 tiles, 32px). Manual grid-based collision (no Phaser physics). Island generation follows "chain of reachable promises" pattern with roles (safe/resource/reward/transit/goal).
 
-**Player system:** Wraps a `Phaser.GameObjects.Container` (body + head + hat + face + outline + shadow). `GameInput` interface abstracts keyboard + gamepad into `{ left, right, up, jump }` booleans each frame.
+**Player system:** Container with body, head, hat, face (drawn via Graphics), outline, shadow. Momentum-based movement, double jump, glide, coyote time, jump buffering, variable jump height, jetpack boost. Particle emitter for trail effects.
 
-**Lives system:** 3 lives, lava death costs 1 life + 1.5s invulnerability (flashing). 10 fruit eaten = +1 life (max 3). 0 lives = GameOverScene.
+**Audio:** Procedural 8-bit chiptune via Web Audio API oscillators (square wave, 2-channel). Settings persisted to localStorage.
 
-**Pixel art textures:** Fruit, flowers, mushrooms, water, and leaves get custom drawn textures in `world-renderer.ts` instead of flat colored squares.
+**Persistence (localStorage):**
+- Character customization: `drift-lands-character`
+- Audio settings: `drift-lands-settings`
+- High scores: `drift-lands-high-scores`
 
 ## Key Files
 
-- `src/config.ts` — all game constants
-- `src/types.ts` — BlockType enum, Island/InventorySlot interfaces
-- `src/player/face-renderer.ts` — shared face-drawing function (used by both player and title preview)
-- `src/world/island-generator.ts` — procedural generation (biomes, trees, fruit, decorations)
+- `src/config.ts` — all game constants (500+)
+- `src/types.ts` — BlockType enum, Island interface (with roles), NON_SOLID_BLOCKS set
+- `src/audio/music.ts` — procedural chiptune generator
+- `src/audio/settings.ts` — music/SFX settings persistence
+- `src/audio/high-scores.ts` — top 5 leaderboard
+- `src/player/face-renderer.ts` — shared face-drawing (player + title preview)
+- `src/world/island-generator.ts` — chain-of-promises generation
+- `src/world/npcs.ts` — NPC spawning and dialogue
 - `src/world/world-renderer.ts` — block textures including pixel-art shapes
-
-## Game Design
-
-Three pillars: **Span the Void** (bridging is the core thrill), **Rewarding Horizons** (every island worth reaching), **Elegant Simplicity** (ruthless scope focus).
-
-Design docs in `design/gdd/` — `game-concept.md` has the full vision, `systems-index.md` has the dependency map.
 
 ## Deploy
 

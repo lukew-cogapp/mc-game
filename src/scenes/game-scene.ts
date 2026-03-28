@@ -67,6 +67,11 @@ import {
 	HUD_RIGHT_H,
 	HUD_RIGHT_W,
 	INVENTORY_SLOTS,
+	JETPACK_COLOR,
+	JETPACK_FUEL_MS,
+	JETPACK_HUD_BAR_HEIGHT,
+	JETPACK_HUD_BAR_WIDTH,
+	JETPACK_HUD_OFFSET_Y,
 	LAVA_GLOW_ALPHA,
 	LAVA_GLOW_COLOR,
 	LAVA_GLOW_HEIGHT,
@@ -105,18 +110,12 @@ import {
 	handleBlockBreak,
 	handleBlockPlace,
 } from "../player/block-interaction";
-import {
-	createInventory,
-	type Inventory,
-	renderInventory,
-} from "../player/inventory";
+import { InventoryBar } from "../player/inventory";
 import {
 	createGameInput,
-	createPlayer,
-	type Player,
+	Player,
 	readGamepadButtons,
 	readGamepadRightStick,
-	updatePlayer,
 } from "../player/player";
 import { BlockType } from "../types";
 import {
@@ -131,7 +130,7 @@ import {
 	type LavaLayer,
 	updateLava,
 } from "../world/lava";
-import { createNpcManager, type NpcManager, updateNpcs } from "../world/npcs";
+import { Npc } from "../world/npcs";
 import { updateWater } from "../world/water-physics";
 import {
 	createWorldTextures,
@@ -159,7 +158,7 @@ export class GameScene extends Phaser.Scene {
 		D: Phaser.Input.Keyboard.Key;
 	};
 	private spaceKey!: Phaser.Input.Keyboard.Key;
-	private inventory!: Inventory;
+	private inventory!: InventoryBar;
 	private blockInteraction!: BlockInteraction;
 	private lava!: LavaLayer;
 	private glideIndicator!: Phaser.GameObjects.Text;
@@ -175,9 +174,10 @@ export class GameScene extends Phaser.Scene {
 	private timerText!: Phaser.GameObjects.Text;
 	private livesText!: Phaser.GameObjects.Text;
 	private fruitText!: Phaser.GameObjects.Text;
+	private jetpackBarGfx!: Phaser.GameObjects.Graphics;
 
 	// NPCs
-	private npcManager!: NpcManager;
+	private npcs: Npc[] = [];
 
 	// Clouds
 	private clouds: Phaser.GameObjects.Container[] = [];
@@ -262,10 +262,10 @@ export class GameScene extends Phaser.Scene {
 		}
 
 		// Player
-		this.player = createPlayer(this, spawnX, spawnY, data);
+		this.player = new Player(this, spawnX, spawnY, data);
 
 		// NPCs
-		this.npcManager = createNpcManager(this, npcPositions);
+		this.npcs = npcPositions.map((pos) => new Npc(this, pos.x, pos.y));
 
 		// Camera
 		this.cameras.main.setBounds(
@@ -274,12 +274,7 @@ export class GameScene extends Phaser.Scene {
 			WORLD_WIDTH_TILES * TILE_SIZE,
 			WORLD_HEIGHT_TILES * TILE_SIZE,
 		);
-		this.cameras.main.startFollow(
-			this.player.container,
-			true,
-			CAMERA_LERP,
-			CAMERA_LERP,
-		);
+		this.cameras.main.startFollow(this.player, true, CAMERA_LERP, CAMERA_LERP);
 
 		// Input
 		if (!this.input.keyboard) {
@@ -310,7 +305,7 @@ export class GameScene extends Phaser.Scene {
 		for (let i = 0; i < INVENTORY_SLOTS; i++) {
 			this.input.keyboard.on(`keydown-${KEY_NAMES[i]}`, () => {
 				this.inventory.selectedIndex = i;
-				renderInventory(this, this.inventory);
+				this.inventory.render();
 			});
 		}
 
@@ -331,7 +326,7 @@ export class GameScene extends Phaser.Scene {
 						(this.inventory.selectedIndex - 1 + INVENTORY_SLOTS) %
 						INVENTORY_SLOTS;
 				}
-				renderInventory(this, this.inventory);
+				this.inventory.render();
 			},
 		);
 
@@ -353,8 +348,8 @@ export class GameScene extends Phaser.Scene {
 		this.input.mouse?.disableContextMenu();
 
 		// Inventory
-		this.inventory = createInventory(this);
-		renderInventory(this, this.inventory);
+		this.inventory = new InventoryBar(this);
+		this.inventory.render();
 
 		// Block interaction
 		this.blockInteraction = createBlockInteraction();
@@ -474,6 +469,11 @@ export class GameScene extends Phaser.Scene {
 		this.lavaMeterLabel.setScrollFactor(0);
 		this.lavaMeterLabel.setDepth(100);
 
+		// Jetpack fuel HUD bar (drawn next to lives display, only visible when fuel > 0)
+		this.jetpackBarGfx = this.add.graphics();
+		this.jetpackBarGfx.setScrollFactor(0);
+		this.jetpackBarGfx.setDepth(UI_DEPTH);
+
 		// Background music (respects settings toggle)
 		this.music = createMusic();
 		const audioSettings = loadSettings();
@@ -513,8 +513,8 @@ export class GameScene extends Phaser.Scene {
 		}
 
 		// Range check against player position
-		const playerGx = Math.floor(this.player.container.x / TILE_SIZE);
-		const playerGy = Math.floor(this.player.container.y / TILE_SIZE);
+		const playerGx = Math.floor(this.player.x / TILE_SIZE);
+		const playerGy = Math.floor(this.player.y / TILE_SIZE);
 		const dx = Math.abs(playerGx - gx);
 		const dy = Math.abs(playerGy - gy);
 		if (dx > BLOCK_INTERACT_RANGE || dy > BLOCK_INTERACT_RANGE) {
@@ -543,14 +543,14 @@ export class GameScene extends Phaser.Scene {
 
 		// Update player
 		const input = createGameInput(this.cursors, this.wasd, this.spaceKey);
-		const gameOver = updatePlayer(this.player, input, this.grid, lavaY, delta);
+		const gameOver = this.player.update(input, this.grid, lavaY, delta);
 		if (gameOver) {
 			this.scene.start("GameOverScene");
 			return;
 		}
 
 		// Win check — reached the top of the world
-		if (this.player.container.y < WIN_ZONE_Y_TILES * TILE_SIZE) {
+		if (this.player.y < WIN_ZONE_Y_TILES * TILE_SIZE) {
 			this.scene.start("VictoryScene", { timeMs: this.gameTimer });
 			return;
 		}
@@ -562,7 +562,9 @@ export class GameScene extends Phaser.Scene {
 		this.timerText.setText(`${mins}:${secs.toString().padStart(2, "0")}`);
 
 		this.collectFruit();
+		this.collectJetpack();
 		this.updateLivesHUD();
+		this.updateJetpackHUD();
 		this.updateLavaMeter(lavaY);
 		// Block breaking (left click held)
 		handleBlockBreak(
@@ -586,13 +588,7 @@ export class GameScene extends Phaser.Scene {
 		this.updateHoverHighlight();
 
 		// Day/night cycle
-		updateDayNight(
-			this.dayNight,
-			this,
-			this.player.container.x,
-			this.player.container.y,
-			delta,
-		);
+		updateDayNight(this.dayNight, this, this.player.x, this.player.y, delta);
 
 		// Background clouds parallax
 		this.updateClouds();
@@ -604,16 +600,14 @@ export class GameScene extends Phaser.Scene {
 		this.updateAmbientParticles(delta);
 
 		// NPC dialogue
-		updateNpcs(
-			this,
-			this.npcManager,
-			this.player.container.x,
-			this.player.container.y,
-			delta,
-		);
+		for (const npc of this.npcs) {
+			npc.update(this.player.x, this.player.y, delta);
+		}
 
-		// Glide indicator
-		if (this.player.isGliding) {
+		// Glide / Jetpack indicator
+		if (this.player.jetpackActive) {
+			this.glideIndicator.setText("JETPACK");
+		} else if (this.player.isGliding) {
 			this.glideIndicator.setText("GLIDING");
 		} else if (!this.player.isGrounded) {
 			this.glideIndicator.setText("Hold SPACE to glide");
@@ -623,8 +617,8 @@ export class GameScene extends Phaser.Scene {
 	}
 
 	private getGamepadTargetTile = (): { gx: number; gy: number } => {
-		const playerGx = Math.floor(this.player.container.x / TILE_SIZE);
-		const playerGy = Math.floor(this.player.container.y / TILE_SIZE);
+		const playerGx = Math.floor(this.player.x / TILE_SIZE);
+		const playerGy = Math.floor(this.player.y / TILE_SIZE);
 
 		const rightStick = readGamepadRightStick();
 		const magnitude = Math.sqrt(
@@ -689,12 +683,12 @@ export class GameScene extends Phaser.Scene {
 		if (lb && !this.gpLBWasDown) {
 			this.inventory.selectedIndex =
 				(this.inventory.selectedIndex - 1 + INVENTORY_SLOTS) % INVENTORY_SLOTS;
-			renderInventory(this, this.inventory);
+			this.inventory.render();
 		}
 		if (rb && !this.gpRBWasDown) {
 			this.inventory.selectedIndex =
 				(this.inventory.selectedIndex + 1) % INVENTORY_SLOTS;
-			renderInventory(this, this.inventory);
+			this.inventory.render();
 		}
 		this.gpLBWasDown = lb;
 		this.gpRBWasDown = rb;
@@ -744,8 +738,8 @@ export class GameScene extends Phaser.Scene {
 
 	private collectFruit = (): void => {
 		// Check the tiles the player overlaps
-		const px = this.player.container.x;
-		const py = this.player.container.y;
+		const px = this.player.x;
+		const py = this.player.y;
 		const halfW = PLAYER_WIDTH / 2;
 		const halfH = PLAYER_HEIGHT / 2;
 
@@ -804,6 +798,99 @@ export class GameScene extends Phaser.Scene {
 		}
 	};
 
+	private collectJetpack = (): void => {
+		const px = this.player.x;
+		const py = this.player.y;
+		const halfW = PLAYER_WIDTH / 2;
+		const halfH = PLAYER_HEIGHT / 2;
+
+		const tiles = [
+			[Math.floor((px - halfW) / TILE_SIZE), Math.floor(py / TILE_SIZE)],
+			[Math.floor((px + halfW) / TILE_SIZE), Math.floor(py / TILE_SIZE)],
+			[Math.floor(px / TILE_SIZE), Math.floor((py - halfH) / TILE_SIZE)],
+			[Math.floor(px / TILE_SIZE), Math.floor((py + halfH) / TILE_SIZE)],
+		];
+
+		for (const [gx, gy] of tiles) {
+			if (
+				gx === undefined ||
+				gy === undefined ||
+				gy < 0 ||
+				gy >= this.grid.length ||
+				gx < 0 ||
+				gx >= this.grid[0].length
+			)
+				continue;
+			if (this.grid[gy][gx] !== BlockType.Jetpack) continue;
+
+			// Consume jetpack block
+			this.grid[gy][gx] = BlockType.Air;
+			removeBlockSprite(this.blockGroup, gx, gy);
+
+			// Add fuel (cumulative)
+			this.player.jetpackFuel += JETPACK_FUEL_MS;
+
+			// Popup text
+			const popup = this.add.text(
+				px,
+				py - FRUIT_POPUP_OFFSET_Y,
+				"+3s JETPACK",
+				{
+					fontSize: "18px",
+					color: "#ff8800",
+					fontStyle: "bold",
+				},
+			);
+			popup.setOrigin(0.5);
+			this.tweens.add({
+				targets: popup,
+				y: py - FRUIT_POPUP_RISE,
+				alpha: 0,
+				duration: FRUIT_POPUP_DURATION,
+				onComplete: () => popup.destroy(),
+			});
+		}
+	};
+
+	private updateJetpackHUD = (): void => {
+		this.jetpackBarGfx.clear();
+
+		if (this.player.jetpackFuel <= 0) return;
+
+		// Position next to the lives display (top-right area)
+		const camW = this.cameras.main.width;
+		const barX = camW - HUD_LIVES_OFFSET_X - JETPACK_HUD_BAR_WIDTH;
+		const barY = HUD_FRUIT_Y + 20 + JETPACK_HUD_OFFSET_Y;
+
+		// Background
+		this.jetpackBarGfx.fillStyle(0x000000, 0.5);
+		this.jetpackBarGfx.fillRect(
+			barX,
+			barY,
+			JETPACK_HUD_BAR_WIDTH,
+			JETPACK_HUD_BAR_HEIGHT,
+		);
+
+		// Orange fuel fill
+		const fuelRatio = Math.min(this.player.jetpackFuel / JETPACK_FUEL_MS, 1);
+		this.jetpackBarGfx.fillStyle(JETPACK_COLOR);
+		this.jetpackBarGfx.fillRect(
+			barX,
+			barY,
+			JETPACK_HUD_BAR_WIDTH * fuelRatio,
+			JETPACK_HUD_BAR_HEIGHT,
+		);
+
+		// Border
+		this.jetpackBarGfx.lineStyle(1, 0xffffff, 0.3);
+		this.jetpackBarGfx.strokeRect(
+			barX,
+			barY,
+			JETPACK_HUD_BAR_WIDTH,
+			JETPACK_HUD_BAR_HEIGHT,
+		);
+	};
+
 	private updateLivesHUD = (): void => {
 		const hearts = "\u2764\ufe0f".repeat(this.player.lives);
 		this.livesText.setText(hearts);
@@ -824,7 +911,7 @@ export class GameScene extends Phaser.Scene {
 		const meterW = LAVA_METER_WIDTH;
 		const meterH = LAVA_METER_HEIGHT;
 
-		const playerY = this.player.container.y;
+		const playerY = this.player.y;
 
 		// Normalize positions (0 = top of world, 1 = bottom)
 		const playerNorm = Math.max(0, Math.min(1, playerY / worldH));

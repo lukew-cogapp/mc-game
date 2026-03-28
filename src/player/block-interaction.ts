@@ -12,12 +12,7 @@ import {
 } from "../config";
 import { BlockType, NON_SOLID_BLOCKS } from "../types";
 import { addBlockSprite, removeBlockSprite } from "../world/world-renderer";
-import {
-	addToInventory,
-	type Inventory,
-	removeFromInventory,
-	renderInventory,
-} from "./inventory";
+import type { InventoryBar } from "./inventory";
 import type { Player } from "./player";
 
 export interface BlockInteraction {
@@ -64,8 +59,8 @@ const getGridPos = (
 });
 
 const isInRange = (player: Player, gx: number, gy: number): boolean => {
-	const playerGx = Math.floor(player.container.x / TILE_SIZE);
-	const playerGy = Math.floor(player.container.y / TILE_SIZE);
+	const playerGx = Math.floor(player.x / TILE_SIZE);
+	const playerGy = Math.floor(player.y / TILE_SIZE);
 	const dx = Math.abs(playerGx - gx);
 	const dy = Math.abs(playerGy - gy);
 	return dx <= BLOCK_INTERACT_RANGE && dy <= BLOCK_INTERACT_RANGE;
@@ -76,7 +71,7 @@ export const handleBlockBreak = (
 	interaction: BlockInteraction,
 	player: Player,
 	grid: BlockType[][],
-	inventory: Inventory,
+	inventory: InventoryBar,
 	blockGroup: Phaser.GameObjects.Group,
 	pointer: Phaser.Input.Pointer,
 	delta: number,
@@ -142,8 +137,8 @@ export const handleBlockBreak = (
 		const blockType = grid[gy][gx];
 		grid[gy][gx] = BlockType.Air;
 		removeBlockSprite(blockGroup, gx, gy);
-		addToInventory(inventory, blockType);
-		renderInventory(scene, inventory);
+		inventory.add(blockType);
+		inventory.render();
 		clearBreaking(interaction);
 	}
 };
@@ -152,7 +147,7 @@ export const handleBlockPlace = (
 	scene: Phaser.Scene,
 	player: Player,
 	grid: BlockType[][],
-	inventory: Inventory,
+	inventory: InventoryBar,
 	blockGroup: Phaser.GameObjects.Group,
 	pointer: Phaser.Input.Pointer,
 ): void => {
@@ -168,16 +163,16 @@ export const handleBlockPlace = (
 	if (!hasAdjacentSolid(grid, gx, gy)) return;
 
 	// Don't place on player
-	const playerGx = Math.floor(player.container.x / TILE_SIZE);
-	const playerGy = Math.floor(player.container.y / TILE_SIZE);
+	const playerGx = Math.floor(player.x / TILE_SIZE);
+	const playerGy = Math.floor(player.y / TILE_SIZE);
 	if (gx === playerGx && (gy === playerGy || gy === playerGy - 1)) return;
 
-	const blockType = removeFromInventory(inventory);
+	const blockType = inventory.removeSelected();
 	if (blockType === null) return;
 
 	grid[gy][gx] = blockType;
 	addBlockSprite(scene, blockGroup, gx, gy, blockType);
-	renderInventory(scene, inventory);
+	inventory.render();
 };
 
 const clearBreaking = (interaction: BlockInteraction): void => {

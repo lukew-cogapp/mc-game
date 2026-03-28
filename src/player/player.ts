@@ -7,7 +7,6 @@ import {
 	GLIDE_GRAVITY,
 	GLIDE_HORIZONTAL_BOOST,
 	GRAVITY,
-	JETPACK_FUEL_MS,
 	JETPACK_PARTICLE_FREQUENCY,
 	JETPACK_PARTICLE_GRAVITY_Y,
 	JETPACK_PARTICLE_LIFESPAN,
@@ -57,6 +56,7 @@ import {
 } from "../config";
 import type { CharacterConfig } from "../scenes/title-scene";
 import { BlockType, NON_SOLID_BLOCKS } from "../types";
+import { drawFace } from "./face-renderer";
 
 const HAT_EMOJI_MAP: Record<string, string> = {
 	tophat: "\u{1f3a9}",
@@ -68,33 +68,6 @@ const HAT_EMOJI_MAP: Record<string, string> = {
 	party: "\u{1f389}",
 	poo: "\u{1f4a9}",
 };
-
-import { drawFace } from "./face-renderer";
-
-export interface Player {
-	container: Phaser.GameObjects.Container;
-	velocityX: number;
-	velocityY: number;
-	isGrounded: boolean;
-	isGliding: boolean;
-	canDoubleJump: boolean;
-	jumpWasDown: boolean;
-	facingRight: boolean;
-	spawnX: number;
-	spawnY: number;
-	trail: string;
-	trailTimer: number;
-	lives: number;
-	invulnerableTimer: number;
-	fruitEaten: number;
-	coyoteTimer: number;
-	jumpBufferTimer: number;
-	wasGrounded: boolean;
-	trailEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null;
-	jetpackFuel: number;
-	jetpackActive: boolean;
-	jetpackEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null;
-}
 
 const TRAIL_EMITTER_CONFIGS: Record<
 	string,
@@ -163,126 +136,6 @@ const createTrailEmitter = (
 	return emitter;
 };
 
-export const createPlayer = (
-	scene: Phaser.Scene,
-	x: number,
-	y: number,
-	characterConfig?: CharacterConfig,
-): Player => {
-	const bodyColor = characterConfig?.bodyColor ?? COLORS.playerBody;
-	const skinColor = characterConfig?.skinColor ?? COLORS.playerHead;
-
-	// Shadow ellipse under player's feet for grounding
-	const footShadow = scene.add.ellipse(
-		0,
-		PLAYER_HEIGHT / 2 + PLAYER_FOOT_SHADOW_OFFSET_Y,
-		PLAYER_WIDTH + PLAYER_FOOT_SHADOW_WIDTH_EXTRA,
-		PLAYER_FOOT_SHADOW_HEIGHT,
-		0x000000,
-		PLAYER_SHADOW_ALPHA,
-	);
-
-	// Dark outline behind body for definition
-	const bodyOutline = scene.add.rectangle(
-		PLAYER_OUTLINE_OFFSET,
-		PLAYER_OUTLINE_OFFSET,
-		PLAYER_WIDTH + PLAYER_OUTLINE_EXTRA,
-		PLAYER_HEIGHT + PLAYER_OUTLINE_EXTRA,
-		0x000000,
-	);
-	bodyOutline.setAlpha(PLAYER_OUTLINE_ALPHA);
-
-	const body = scene.add.rectangle(
-		0,
-		0,
-		PLAYER_WIDTH,
-		PLAYER_HEIGHT,
-		bodyColor,
-	);
-	const head = scene.add.circle(
-		0,
-		-PLAYER_HEIGHT / 2 - PLAYER_HEAD_OFFSET_Y,
-		PLAYER_HEAD_RADIUS,
-		skinColor,
-	);
-
-	const children: Phaser.GameObjects.GameObject[] = [
-		footShadow,
-		bodyOutline,
-		body,
-		head,
-	];
-
-	// Hat
-	const hatKey = characterConfig?.hat ?? "none";
-	if (hatKey !== "none" && HAT_EMOJI_MAP[hatKey]) {
-		const hat = scene.add
-			.text(
-				0,
-				-PLAYER_HEIGHT / 2 - PLAYER_HAT_OFFSET_Y,
-				HAT_EMOJI_MAP[hatKey],
-				{
-					fontSize: "12px",
-				},
-			)
-			.setOrigin(0.5);
-		children.push(hat);
-	}
-
-	// Face expression (drawn on head)
-	const faceKey = characterConfig?.face ?? "none";
-	if (faceKey !== "none") {
-		const faceGfx = scene.add.graphics();
-		faceGfx.setPosition(0, -PLAYER_HEIGHT / 2 - PLAYER_HEAD_OFFSET_Y);
-		drawFace(faceGfx, faceKey);
-		children.push(faceGfx);
-	}
-
-	const container = scene.add.container(x, y, children);
-
-	const trailType = characterConfig?.trail ?? "none";
-	const trailEmitter =
-		trailType !== "none" ? createTrailEmitter(scene, trailType) : null;
-
-	// Jetpack flame emitter (created once, toggled on/off)
-	const jetpackEmitter = scene.add.particles(0, 0, "particle_dot", {
-		speed: JETPACK_PARTICLE_SPEED,
-		gravityY: JETPACK_PARTICLE_GRAVITY_Y,
-		lifespan: JETPACK_PARTICLE_LIFESPAN,
-		alpha: { start: 0.9, end: 0 },
-		scale: { start: 0.6, end: 0 },
-		tint: [0xff4400, 0xff8800, 0xffaa00],
-		frequency: JETPACK_PARTICLE_FREQUENCY,
-		emitting: false,
-		angle: { min: 70, max: 110 },
-	});
-
-	return {
-		container,
-		velocityX: 0,
-		velocityY: 0,
-		isGrounded: false,
-		isGliding: false,
-		canDoubleJump: false,
-		jumpWasDown: false,
-		facingRight: true,
-		spawnX: x,
-		spawnY: y,
-		trail: trailType,
-		trailTimer: 0,
-		lives: STARTING_LIVES,
-		invulnerableTimer: 0,
-		fruitEaten: 0,
-		coyoteTimer: 0,
-		jumpBufferTimer: 0,
-		wasGrounded: false,
-		trailEmitter,
-		jetpackFuel: 0,
-		jetpackActive: false,
-		jetpackEmitter,
-	};
-};
-
 const checkCollision = (
 	grid: BlockType[][],
 	worldX: number,
@@ -318,6 +171,375 @@ const isInWater = (
 	}
 	return grid[gridY][gridX] === BlockType.Water;
 };
+
+export class Player extends Phaser.GameObjects.Container {
+	velocityX = 0;
+	velocityY = 0;
+	isGrounded = false;
+	isGliding = false;
+	canDoubleJump = false;
+	jumpWasDown = false;
+	facingRight = true;
+	spawnX: number;
+	spawnY: number;
+	trail: string;
+	trailTimer = 0;
+	lives = STARTING_LIVES;
+	invulnerableTimer = 0;
+	fruitEaten = 0;
+	coyoteTimer = 0;
+	jumpBufferTimer = 0;
+	wasGrounded = false;
+	trailEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+	jetpackFuel = 0;
+	jetpackActive = false;
+	jetpackEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+
+	constructor(
+		scene: Phaser.Scene,
+		x: number,
+		y: number,
+		characterConfig?: CharacterConfig,
+	) {
+		super(scene, x, y);
+		scene.add.existing(this);
+
+		this.spawnX = x;
+		this.spawnY = y;
+
+		const bodyColor = characterConfig?.bodyColor ?? COLORS.playerBody;
+		const skinColor = characterConfig?.skinColor ?? COLORS.playerHead;
+
+		// Shadow ellipse under player's feet for grounding
+		const footShadow = scene.add.ellipse(
+			0,
+			PLAYER_HEIGHT / 2 + PLAYER_FOOT_SHADOW_OFFSET_Y,
+			PLAYER_WIDTH + PLAYER_FOOT_SHADOW_WIDTH_EXTRA,
+			PLAYER_FOOT_SHADOW_HEIGHT,
+			0x000000,
+			PLAYER_SHADOW_ALPHA,
+		);
+
+		// Dark outline behind body for definition
+		const bodyOutline = scene.add.rectangle(
+			PLAYER_OUTLINE_OFFSET,
+			PLAYER_OUTLINE_OFFSET,
+			PLAYER_WIDTH + PLAYER_OUTLINE_EXTRA,
+			PLAYER_HEIGHT + PLAYER_OUTLINE_EXTRA,
+			0x000000,
+		);
+		bodyOutline.setAlpha(PLAYER_OUTLINE_ALPHA);
+
+		const body = scene.add.rectangle(
+			0,
+			0,
+			PLAYER_WIDTH,
+			PLAYER_HEIGHT,
+			bodyColor,
+		);
+		const head = scene.add.circle(
+			0,
+			-PLAYER_HEIGHT / 2 - PLAYER_HEAD_OFFSET_Y,
+			PLAYER_HEAD_RADIUS,
+			skinColor,
+		);
+
+		const children: Phaser.GameObjects.GameObject[] = [
+			footShadow,
+			bodyOutline,
+			body,
+			head,
+		];
+
+		// Hat
+		const hatKey = characterConfig?.hat ?? "none";
+		if (hatKey !== "none" && HAT_EMOJI_MAP[hatKey]) {
+			const hat = scene.add
+				.text(
+					0,
+					-PLAYER_HEIGHT / 2 - PLAYER_HAT_OFFSET_Y,
+					HAT_EMOJI_MAP[hatKey],
+					{
+						fontSize: "12px",
+					},
+				)
+				.setOrigin(0.5);
+			children.push(hat);
+		}
+
+		// Face expression (drawn on head)
+		const faceKey = characterConfig?.face ?? "none";
+		if (faceKey !== "none") {
+			const faceGfx = scene.add.graphics();
+			faceGfx.setPosition(0, -PLAYER_HEIGHT / 2 - PLAYER_HEAD_OFFSET_Y);
+			drawFace(faceGfx, faceKey);
+			children.push(faceGfx);
+		}
+
+		this.add(children);
+
+		const trailType = characterConfig?.trail ?? "none";
+		this.trail = trailType;
+		this.trailEmitter =
+			trailType !== "none" ? createTrailEmitter(scene, trailType) : null;
+
+		// Jetpack flame emitter (created once, toggled on/off)
+		this.jetpackEmitter = scene.add.particles(0, 0, "particle_dot", {
+			speed: JETPACK_PARTICLE_SPEED,
+			gravityY: JETPACK_PARTICLE_GRAVITY_Y,
+			lifespan: JETPACK_PARTICLE_LIFESPAN,
+			alpha: { start: 0.9, end: 0 },
+			scale: { start: 0.6, end: 0 },
+			tint: [0xff4400, 0xff8800, 0xffaa00],
+			frequency: JETPACK_PARTICLE_FREQUENCY,
+			emitting: false,
+			angle: { min: 70, max: 110 },
+		});
+	}
+
+	update = (
+		input: GameInput,
+		grid: BlockType[][],
+		lavaY: number,
+		delta: number,
+	): boolean => {
+		// Tick invulnerability
+		if (this.invulnerableTimer > 0) {
+			this.invulnerableTimer -= delta;
+			// Flash effect during invulnerability
+			this.setAlpha(
+				Math.sin(this.invulnerableTimer * PLAYER_INVULNERABLE_FLASH_SPEED) > 0
+					? 1
+					: PLAYER_INVULNERABLE_DIM_ALPHA,
+			);
+		} else {
+			this.setAlpha(1);
+		}
+
+		const dt = delta / 1000;
+		const halfW = PLAYER_WIDTH / 2;
+		const halfH = PLAYER_HEIGHT / 2;
+
+		// Check if player is submerged in water
+		const inWater = isInWater(grid, this.x, this.y);
+		const speedMultiplier = inWater ? WATER_SPEED_MULTIPLIER : 1;
+		const targetSpeed = PLAYER_SPEED * speedMultiplier;
+
+		// Acceleration-based horizontal movement
+		if (input.left) {
+			this.velocityX = Math.max(
+				this.velocityX - PLAYER_ACCELERATION * dt,
+				-targetSpeed,
+			);
+			this.facingRight = false;
+		} else if (input.right) {
+			this.velocityX = Math.min(
+				this.velocityX + PLAYER_ACCELERATION * dt,
+				targetSpeed,
+			);
+			this.facingRight = true;
+		} else {
+			// Decelerate toward 0
+			if (this.velocityX > 0) {
+				this.velocityX = Math.max(0, this.velocityX - PLAYER_DECELERATION * dt);
+			} else if (this.velocityX < 0) {
+				this.velocityX = Math.min(0, this.velocityX + PLAYER_DECELERATION * dt);
+			}
+		}
+
+		// Gliding
+		this.isGliding = !this.isGrounded && input.jump && this.velocityY > 0;
+		if (this.isGliding) {
+			this.velocityX *= GLIDE_HORIZONTAL_BOOST;
+		}
+
+		// Gravity
+		const currentGravity = this.isGliding ? GLIDE_GRAVITY : GRAVITY;
+		this.velocityY += currentGravity * dt;
+
+		// Coyote time: track when player leaves ground
+		if (this.wasGrounded && !this.isGrounded) {
+			this.coyoteTimer = COYOTE_TIME_MS;
+		}
+		if (this.coyoteTimer > 0) {
+			this.coyoteTimer -= delta;
+		}
+
+		// Jump buffering: track jump presses while airborne
+		if (this.jumpBufferTimer > 0) {
+			this.jumpBufferTimer -= delta;
+		}
+
+		// Jump / Double jump (edge-triggered — must release and re-press)
+		const jumpPressed = input.jump && !this.jumpWasDown;
+
+		// Buffer the jump if pressed while airborne
+		if (jumpPressed && !this.isGrounded && this.coyoteTimer <= 0) {
+			this.jumpBufferTimer = JUMP_BUFFER_MS;
+		}
+
+		// Determine if jump should execute (grounded, coyote time, or buffered)
+		const canCoyoteJump = !this.isGrounded && this.coyoteTimer > 0;
+		const shouldJump = jumpPressed && (this.isGrounded || canCoyoteJump);
+
+		if (shouldJump) {
+			this.velocityY = JUMP_VELOCITY;
+			this.isGrounded = false;
+			this.coyoteTimer = 0;
+			this.jumpBufferTimer = 0;
+			this.canDoubleJump = true;
+		} else if (jumpPressed && this.canDoubleJump) {
+			this.velocityY = DOUBLE_JUMP_VELOCITY;
+			this.canDoubleJump = false;
+			this.jumpBufferTimer = 0;
+		}
+
+		// Jump buffer: auto-jump on landing if buffer is active
+		if (this.isGrounded && this.jumpBufferTimer > 0) {
+			this.velocityY = JUMP_VELOCITY;
+			this.isGrounded = false;
+			this.jumpBufferTimer = 0;
+			this.canDoubleJump = true;
+		}
+
+		// Variable jump height: cut velocity when jump released early while ascending
+		if (!input.jump && this.jumpWasDown && this.velocityY < 0) {
+			this.velocityY *= 0.5;
+		}
+
+		this.jumpWasDown = input.jump;
+
+		// Jetpack boost: airborne + holding jump + has fuel
+		if (!this.isGrounded && input.jump && this.jetpackFuel > 0) {
+			this.jetpackActive = true;
+			this.velocityY = JETPACK_THRUST;
+			this.jetpackFuel = Math.max(0, this.jetpackFuel - delta);
+		} else {
+			this.jetpackActive = false;
+		}
+
+		// Jetpack flame emitter
+		if (this.jetpackEmitter) {
+			if (this.jetpackActive) {
+				this.jetpackEmitter.setPosition(this.x, this.y + PLAYER_HEIGHT / 2);
+				this.jetpackEmitter.start();
+			} else {
+				this.jetpackEmitter.stop();
+			}
+		}
+
+		// Move horizontally
+		const newX = this.x + this.velocityX * dt;
+		const footY = this.y + halfH - 1;
+		const headY = this.y - halfH;
+
+		const collidesLeft =
+			checkCollision(grid, newX - halfW, footY) ||
+			checkCollision(grid, newX - halfW, headY);
+		const collidesRight =
+			checkCollision(grid, newX + halfW, footY) ||
+			checkCollision(grid, newX + halfW, headY);
+
+		if (this.velocityX < 0 && !collidesLeft) {
+			this.x = newX;
+		} else if (this.velocityX > 0 && !collidesRight) {
+			this.x = newX;
+		}
+
+		// Move vertically
+		const newY = this.y + this.velocityY * dt;
+
+		// Check feet (falling)
+		if (this.velocityY > 0) {
+			const leftFoot = checkCollision(
+				grid,
+				this.x - halfW + PLAYER_COLLISION_INSET,
+				newY + halfH,
+			);
+			const rightFoot = checkCollision(
+				grid,
+				this.x + halfW - PLAYER_COLLISION_INSET,
+				newY + halfH,
+			);
+			if (leftFoot || rightFoot) {
+				// Snap to top of tile
+				const gridY = Math.floor((newY + halfH) / TILE_SIZE);
+				this.y = gridY * TILE_SIZE - halfH;
+				this.velocityY = 0;
+				this.isGrounded = true;
+			} else {
+				this.y = newY;
+				this.isGrounded = false;
+			}
+		} else if (this.velocityY < 0) {
+			// Check head (jumping)
+			const leftHead = checkCollision(
+				grid,
+				this.x - halfW + PLAYER_COLLISION_INSET,
+				newY - halfH,
+			);
+			const rightHead = checkCollision(
+				grid,
+				this.x + halfW - PLAYER_COLLISION_INSET,
+				newY - halfH,
+			);
+			if (leftHead || rightHead) {
+				this.velocityY = 0;
+			} else {
+				this.y = newY;
+			}
+		}
+
+		// Check grounded (for next frame)
+		this.wasGrounded = this.isGrounded;
+		const groundCheckLeft = checkCollision(
+			grid,
+			this.x - halfW + PLAYER_COLLISION_INSET,
+			this.y + halfH + 1,
+		);
+		const groundCheckRight = checkCollision(
+			grid,
+			this.x + halfW - PLAYER_COLLISION_INSET,
+			this.y + halfH + 1,
+		);
+		this.isGrounded = groundCheckLeft || groundCheckRight;
+
+		// Update spawn point when landing on solid ground
+		if (this.isGrounded && !this.wasGrounded) {
+			this.spawnX = this.x;
+			this.spawnY = this.y;
+		}
+
+		// Lava death
+		if (this.y + halfH >= lavaY && this.invulnerableTimer <= 0) {
+			this.lives--;
+			if (this.lives <= 0) {
+				return true; // Game over
+			}
+			// Respawn with brief invulnerability
+			this.x = this.spawnX;
+			this.y = this.spawnY;
+			this.velocityX = 0;
+			this.velocityY = 0;
+			this.invulnerableTimer = DEATH_INVULNERABLE_MS;
+		}
+
+		// Visual: flip based on direction + gentle idle bob when grounded
+		this.scaleX = this.facingRight ? 1 : -1;
+		if (this.isGrounded && Math.abs(this.velocityX) < 1) {
+			const bobOffset =
+				Math.sin(Date.now() * PLAYER_BOB_SPEED) * PLAYER_BOB_AMPLITUDE;
+			this.y += bobOffset;
+		}
+
+		// Trail particle emitter: follow player position
+		if (this.trailEmitter) {
+			this.trailEmitter.setPosition(this.x, this.y + TRAIL_PARTICLE_OFFSET_Y);
+		}
+
+		return false;
+	};
+}
 
 export interface GameInput {
 	left: boolean;
@@ -421,260 +643,4 @@ export const readGamepadButtons = (): {
 export const readGamepadRightStick = (): { x: number; y: number } => {
 	const gp = readBrowserGamepad();
 	return { x: gp.rightStickX, y: gp.rightStickY };
-};
-
-export const updatePlayer = (
-	player: Player,
-	input: GameInput,
-	grid: BlockType[][],
-	lavaY: number,
-	delta: number,
-): boolean => {
-	// Tick invulnerability
-	if (player.invulnerableTimer > 0) {
-		player.invulnerableTimer -= delta;
-		// Flash effect during invulnerability
-		player.container.setAlpha(
-			Math.sin(player.invulnerableTimer * PLAYER_INVULNERABLE_FLASH_SPEED) > 0
-				? 1
-				: PLAYER_INVULNERABLE_DIM_ALPHA,
-		);
-	} else {
-		player.container.setAlpha(1);
-	}
-
-	const dt = delta / 1000;
-	const halfW = PLAYER_WIDTH / 2;
-	const halfH = PLAYER_HEIGHT / 2;
-
-	// Check if player is submerged in water
-	const inWater = isInWater(grid, player.container.x, player.container.y);
-	const speedMultiplier = inWater ? WATER_SPEED_MULTIPLIER : 1;
-	const targetSpeed = PLAYER_SPEED * speedMultiplier;
-
-	// Acceleration-based horizontal movement
-	if (input.left) {
-		player.velocityX = Math.max(
-			player.velocityX - PLAYER_ACCELERATION * dt,
-			-targetSpeed,
-		);
-		player.facingRight = false;
-	} else if (input.right) {
-		player.velocityX = Math.min(
-			player.velocityX + PLAYER_ACCELERATION * dt,
-			targetSpeed,
-		);
-		player.facingRight = true;
-	} else {
-		// Decelerate toward 0
-		if (player.velocityX > 0) {
-			player.velocityX = Math.max(
-				0,
-				player.velocityX - PLAYER_DECELERATION * dt,
-			);
-		} else if (player.velocityX < 0) {
-			player.velocityX = Math.min(
-				0,
-				player.velocityX + PLAYER_DECELERATION * dt,
-			);
-		}
-	}
-
-	// Gliding
-	player.isGliding = !player.isGrounded && input.jump && player.velocityY > 0;
-	if (player.isGliding) {
-		player.velocityX *= GLIDE_HORIZONTAL_BOOST;
-	}
-
-	// Gravity
-	const currentGravity = player.isGliding ? GLIDE_GRAVITY : GRAVITY;
-	player.velocityY += currentGravity * dt;
-
-	// Coyote time: track when player leaves ground
-	if (player.wasGrounded && !player.isGrounded) {
-		player.coyoteTimer = COYOTE_TIME_MS;
-	}
-	if (player.coyoteTimer > 0) {
-		player.coyoteTimer -= delta;
-	}
-
-	// Jump buffering: track jump presses while airborne
-	if (player.jumpBufferTimer > 0) {
-		player.jumpBufferTimer -= delta;
-	}
-
-	// Jump / Double jump (edge-triggered — must release and re-press)
-	const jumpPressed = input.jump && !player.jumpWasDown;
-
-	// Buffer the jump if pressed while airborne
-	if (jumpPressed && !player.isGrounded && player.coyoteTimer <= 0) {
-		player.jumpBufferTimer = JUMP_BUFFER_MS;
-	}
-
-	// Determine if jump should execute (grounded, coyote time, or buffered)
-	const canCoyoteJump = !player.isGrounded && player.coyoteTimer > 0;
-	const shouldJump = jumpPressed && (player.isGrounded || canCoyoteJump);
-
-	if (shouldJump) {
-		player.velocityY = JUMP_VELOCITY;
-		player.isGrounded = false;
-		player.coyoteTimer = 0;
-		player.jumpBufferTimer = 0;
-		player.canDoubleJump = true;
-	} else if (jumpPressed && player.canDoubleJump) {
-		player.velocityY = DOUBLE_JUMP_VELOCITY;
-		player.canDoubleJump = false;
-		player.jumpBufferTimer = 0;
-	}
-
-	// Jump buffer: auto-jump on landing if buffer is active
-	if (player.isGrounded && player.jumpBufferTimer > 0) {
-		player.velocityY = JUMP_VELOCITY;
-		player.isGrounded = false;
-		player.jumpBufferTimer = 0;
-		player.canDoubleJump = true;
-	}
-
-	// Variable jump height: cut velocity when jump released early while ascending
-	if (!input.jump && player.jumpWasDown && player.velocityY < 0) {
-		player.velocityY *= 0.5;
-	}
-
-	player.jumpWasDown = input.jump;
-
-	// Jetpack boost: airborne + holding jump + has fuel
-	if (!player.isGrounded && input.jump && player.jetpackFuel > 0) {
-		player.jetpackActive = true;
-		player.velocityY = JETPACK_THRUST;
-		player.jetpackFuel = Math.max(0, player.jetpackFuel - delta);
-	} else {
-		player.jetpackActive = false;
-	}
-
-	// Jetpack flame emitter
-	if (player.jetpackEmitter) {
-		if (player.jetpackActive) {
-			player.jetpackEmitter.setPosition(
-				player.container.x,
-				player.container.y + PLAYER_HEIGHT / 2,
-			);
-			player.jetpackEmitter.start();
-		} else {
-			player.jetpackEmitter.stop();
-		}
-	}
-
-	// Move horizontally
-	const newX = player.container.x + player.velocityX * dt;
-	const footY = player.container.y + halfH - 1;
-	const headY = player.container.y - halfH;
-
-	const collidesLeft =
-		checkCollision(grid, newX - halfW, footY) ||
-		checkCollision(grid, newX - halfW, headY);
-	const collidesRight =
-		checkCollision(grid, newX + halfW, footY) ||
-		checkCollision(grid, newX + halfW, headY);
-
-	if (player.velocityX < 0 && !collidesLeft) {
-		player.container.x = newX;
-	} else if (player.velocityX > 0 && !collidesRight) {
-		player.container.x = newX;
-	}
-
-	// Move vertically
-	const newY = player.container.y + player.velocityY * dt;
-
-	// Check feet (falling)
-	if (player.velocityY > 0) {
-		const leftFoot = checkCollision(
-			grid,
-			player.container.x - halfW + PLAYER_COLLISION_INSET,
-			newY + halfH,
-		);
-		const rightFoot = checkCollision(
-			grid,
-			player.container.x + halfW - PLAYER_COLLISION_INSET,
-			newY + halfH,
-		);
-		if (leftFoot || rightFoot) {
-			// Snap to top of tile
-			const gridY = Math.floor((newY + halfH) / TILE_SIZE);
-			player.container.y = gridY * TILE_SIZE - halfH;
-			player.velocityY = 0;
-			player.isGrounded = true;
-		} else {
-			player.container.y = newY;
-			player.isGrounded = false;
-		}
-	} else if (player.velocityY < 0) {
-		// Check head (jumping)
-		const leftHead = checkCollision(
-			grid,
-			player.container.x - halfW + PLAYER_COLLISION_INSET,
-			newY - halfH,
-		);
-		const rightHead = checkCollision(
-			grid,
-			player.container.x + halfW - PLAYER_COLLISION_INSET,
-			newY - halfH,
-		);
-		if (leftHead || rightHead) {
-			player.velocityY = 0;
-		} else {
-			player.container.y = newY;
-		}
-	}
-
-	// Check grounded (for next frame)
-	player.wasGrounded = player.isGrounded;
-	const groundCheckLeft = checkCollision(
-		grid,
-		player.container.x - halfW + PLAYER_COLLISION_INSET,
-		player.container.y + halfH + 1,
-	);
-	const groundCheckRight = checkCollision(
-		grid,
-		player.container.x + halfW - PLAYER_COLLISION_INSET,
-		player.container.y + halfH + 1,
-	);
-	player.isGrounded = groundCheckLeft || groundCheckRight;
-
-	// Update spawn point when landing on solid ground
-	if (player.isGrounded && !player.wasGrounded) {
-		player.spawnX = player.container.x;
-		player.spawnY = player.container.y;
-	}
-
-	// Lava death
-	if (player.container.y + halfH >= lavaY && player.invulnerableTimer <= 0) {
-		player.lives--;
-		if (player.lives <= 0) {
-			return true; // Game over
-		}
-		// Respawn with brief invulnerability
-		player.container.x = player.spawnX;
-		player.container.y = player.spawnY;
-		player.velocityX = 0;
-		player.velocityY = 0;
-		player.invulnerableTimer = DEATH_INVULNERABLE_MS;
-	}
-
-	// Visual: flip based on direction + gentle idle bob when grounded
-	player.container.scaleX = player.facingRight ? 1 : -1;
-	if (player.isGrounded && Math.abs(player.velocityX) < 1) {
-		const bobOffset =
-			Math.sin(Date.now() * PLAYER_BOB_SPEED) * PLAYER_BOB_AMPLITUDE;
-		player.container.y += bobOffset;
-	}
-
-	// Trail particle emitter: follow player position
-	if (player.trailEmitter) {
-		player.trailEmitter.setPosition(
-			player.container.x,
-			player.container.y + TRAIL_PARTICLE_OFFSET_Y,
-		);
-	}
-
-	return false;
 };
