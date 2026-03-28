@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import UIPlugin from "phaser3-rex-plugins/templates/ui/ui-plugin.js";
 import { COLORS } from "./config";
 import { GameOverScene } from "./scenes/game-over-scene";
 import { GameScene } from "./scenes/game-scene";
@@ -23,6 +24,15 @@ const config: Phaser.Types.Core.GameConfig = {
 			preventDefaultWheel: true,
 		},
 		gamepad: true,
+	},
+	plugins: {
+		scene: [
+			{
+				key: "rexUI",
+				plugin: UIPlugin,
+				mapping: "rexUI",
+			},
+		],
 	},
 };
 
