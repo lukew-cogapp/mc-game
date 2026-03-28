@@ -348,7 +348,11 @@ export class Player extends Phaser.GameObjects.Container {
 		}
 
 		// Gliding
-		this.isGliding = !this.isGrounded && input.jump && this.velocityY > 0;
+		this.isGliding =
+			!this.isGrounded &&
+			input.jump &&
+			this.velocityY > 0 &&
+			!this.jetpackActive;
 		if (this.isGliding) {
 			// Boost max speed while gliding, but don't multiply every frame
 			const glideMaxSpeed = targetSpeed * GLIDE_HORIZONTAL_BOOST;

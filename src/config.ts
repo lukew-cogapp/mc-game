@@ -11,9 +11,11 @@ export const PLAYER_DECELERATION = 1500;
 export const JUMP_VELOCITY = -350;
 export const GLIDE_GRAVITY = 100;
 export const GLIDE_HORIZONTAL_BOOST = 1.3;
+export const GLIDE_MAX_DURATION_MS = 3000;
 export const DOUBLE_JUMP_VELOCITY = -300;
 export const COYOTE_TIME_MS = 80;
 export const JUMP_BUFFER_MS = 100;
+export const PLAYER_STEP_UP_HEIGHT = 1;
 
 // -- Island Generation --
 export const HOME_ISLAND_WIDTH = 16;
@@ -300,6 +302,29 @@ export const LAVA_METER_X = 16;
 export const LAVA_METER_WIDTH = 12;
 export const LAVA_METER_HEIGHT = 200;
 export const LAVA_METER_MARGIN_TOP = 60;
+export const LAVA_METER_TRACK_BG_COLOR = 0x000000;
+export const LAVA_METER_TRACK_BG_ALPHA = 0.5;
+export const LAVA_METER_BORDER_COLOR = 0xffffff;
+export const LAVA_METER_BORDER_ALPHA = 0.15;
+export const LAVA_METER_FILL_COLOR = 0xff4400;
+export const LAVA_METER_FILL_ALPHA = 0.6;
+export const LAVA_METER_GOAL_COLOR = 0xffd700;
+export const LAVA_METER_GOAL_ALPHA = 0.4;
+export const LAVA_METER_GOAL_HEIGHT = 8;
+export const LAVA_METER_PLAYER_COLOR = 0xffffff;
+export const LAVA_METER_PLAYER_RADIUS = 4;
+export const LAVA_METER_PLAYER_OUTLINE_COLOR = 0x000000;
+export const LAVA_METER_PLAYER_OUTLINE_ALPHA = 0.5;
+export const LAVA_METER_LABEL_BG_COLOR = "#00000088";
+export const LAVA_METER_LABEL_PADDING_X = 4;
+export const LAVA_METER_LABEL_PADDING_Y = 2;
+export const LAVA_METER_LABEL_FONT_SIZE = "14px";
+export const LAVA_METER_LABEL_OFFSET_X = 4;
+export const LAVA_METER_LABEL_OFFSET_Y = -12;
+export const LAVA_METER_TRACK_RADIUS = 4;
+export const LAVA_METER_FILL_INSET = 1;
+export const LAVA_METER_FILL_WIDTH_INSET = 2;
+export const LAVA_METER_BORDER_WIDTH = 1;
 
 // -- Hover Highlight --
 export const HOVER_HIGHLIGHT_COLOR = 0xffffff;
@@ -466,6 +491,9 @@ export const TITLE_CONTROLS_DESC_OFFSET_X = 40;
 export const TITLE_CONTROLS_START_OFFSET_Y = 56;
 
 // -- Game Over Scene --
+export const GAMEOVER_TITLE_FONT_SIZE = "64px";
+export const GAMEOVER_SUBTITLE_FONT_SIZE = "18px";
+export const GAMEOVER_PROMPT_FONT_SIZE = "16px";
 export const GAMEOVER_BG_COLOR = 0x0a0a0a;
 export const GAMEOVER_OVERLAY_COLOR = 0x110000;
 export const GAMEOVER_OVERLAY_ALPHA = 0.6;
@@ -495,6 +523,16 @@ export const HUD_LIVES_OFFSET_X = 18;
 export const HUD_LIVES_Y = 14;
 export const HUD_FRUIT_Y = 40;
 export const HUD_DEPTH = 99;
+export const HUD_LIVES_FONT_SIZE = "24px";
+export const HUD_FRUIT_FONT_SIZE = "16px";
+export const HUD_TIMER_FONT_SIZE = "20px";
+export const HUD_TIMER_BG_COLOR = "#00000088";
+export const HUD_TIMER_PADDING_X = 12;
+export const HUD_TIMER_PADDING_Y = 6;
+export const HUD_LIVES_MARGIN_RIGHT = 20;
+export const HUD_FRUIT_MARGIN_RIGHT = 20;
+export const HUD_FRUIT_OFFSET_Y = 42;
+export const HUD_POPUP_FONT_SIZE = "18px";
 
 // -- Fruit Popup --
 export const FRUIT_POPUP_OFFSET_Y = 30;
@@ -559,14 +597,14 @@ export const CLOUD_DEPTH = -10;
 export const CLOUD_WRAP_MARGIN = 100;
 
 // -- Inventory Visual --
-export const INVENTORY_BG_COLOR = 0x111122;
+export const INVENTORY_BG_COLOR = 0x1a1a33;
 export const INVENTORY_BG_ALPHA = 0.85;
 export const INVENTORY_BG_PADDING_X = 24;
 export const INVENTORY_BG_PADDING_Y = 8;
 export const INVENTORY_BG_RADIUS = 8;
 export const INVENTORY_BORDER_ALPHA = 0.15;
-export const INVENTORY_SLOT_SELECTED_BG = 0x444466;
-export const INVENTORY_SLOT_BG = 0x222233;
+export const INVENTORY_SLOT_SELECTED_BG = 0x555577;
+export const INVENTORY_SLOT_BG = 0x333344;
 export const INVENTORY_SLOT_SELECTED_BORDER_WIDTH = 3;
 export const INVENTORY_SLOT_BORDER_WIDTH = 1;
 export const INVENTORY_SLOT_BORDER_COLOR = 0x555566;
@@ -732,6 +770,11 @@ export const NOTIFICATION_SPACING = 36;
 export const NOTIFICATION_FONT_SIZE = "16px";
 export const NOTIFICATION_BG_COLOR = 0x000000;
 export const NOTIFICATION_BG_ALPHA = 0.7;
+export const NOTIFICATION_SLIDE_IN_OFFSET = 100;
+export const NOTIFICATION_SLIDE_IN_DURATION = 200;
+export const NOTIFICATION_SLIDE_OUT_OFFSET = 50;
+export const NOTIFICATION_REPOSITION_DURATION = 150;
+export const NOTIFICATION_EASE = "Power2";
 
 // -- Block Mining Times (ms per block type) --
 export const MINE_TIME_DIRT = 200;

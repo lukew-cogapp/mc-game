@@ -253,9 +253,6 @@ export class Npc extends Phaser.GameObjects.Container {
 			this.y += this.velocityY * dt;
 		}
 
-		// Keep spawnX/spawnY in sync for dialogue proximity check
-		this.spawnY = this.y;
-
 		// -- Lava death --
 		if (this.y > lavaY) {
 			this.alive = false;
@@ -266,8 +263,8 @@ export class Npc extends Phaser.GameObjects.Container {
 		}
 
 		const interactDist = NPC_INTERACT_RANGE * TILE_SIZE;
-		const dx = playerX - this.spawnX;
-		const dy = playerY - this.spawnY;
+		const dx = playerX - this.x;
+		const dy = playerY - this.y;
 		const dist = Math.sqrt(dx * dx + dy * dy);
 		const inRange = dist <= interactDist;
 

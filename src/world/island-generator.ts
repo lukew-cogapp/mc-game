@@ -711,7 +711,7 @@ export const generateWorld = (): {
 	);
 
 	let prevCenterX = homeIsland.x + Math.floor(homeIsland.width / 2);
-	const prevY = homeIsland.y;
+	const prevY = homeIsland.y - homeIsland.height;
 	let goingRight = Math.random() < 0.5;
 
 	// Starter islands near home

@@ -393,31 +393,27 @@ export class TitleScene extends Phaser.Scene {
 			PLAYER_HEIGHT * TITLE_PREVIEW_SCALE,
 			CHARACTER_COLORS[this.selected.body],
 		);
-		const headY = charY - PLAYER_HEIGHT * 1.2 - TITLE_PREVIEW_HEAD_OFFSET_Y;
+		const bodyHalfH = (PLAYER_HEIGHT * TITLE_PREVIEW_SCALE) / 2;
+		const headRadius = TITLE_PREVIEW_HEAD_RADIUS;
+		const headY = charY - bodyHalfH - headRadius - TITLE_PREVIEW_HEAD_OFFSET_Y;
 		this.previewHead = this.add.circle(
 			leftPanelX,
 			headY,
-			TITLE_PREVIEW_HEAD_RADIUS,
+			headRadius,
 			SKIN_COLORS[this.selected.skin],
 		);
 		this.previewHat = this.add
-			.text(
-				leftPanelX,
-				charY - PLAYER_HEIGHT * 1.2 - TITLE_PREVIEW_HAT_OFFSET_Y,
-				"",
-				{ fontSize: "24px" },
-			)
+			.text(leftPanelX, headY - headRadius - TITLE_PREVIEW_HAT_OFFSET_Y, "", {
+				fontSize: "24px",
+			})
 			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5);
 		this.previewFaceGfx = this.add.graphics();
 		this.previewFaceGfx.setPosition(leftPanelX, headY);
 		this.previewTrail = this.add
-			.text(
-				leftPanelX,
-				charY + PLAYER_HEIGHT * 1.2 + TITLE_PREVIEW_HEAD_OFFSET_Y,
-				"",
-				{ fontSize: "14px" },
-			)
+			.text(leftPanelX, charY + bodyHalfH + TITLE_PREVIEW_HEAD_OFFSET_Y, "", {
+				fontSize: "14px",
+			})
 			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5);
 
@@ -625,12 +621,10 @@ export class TitleScene extends Phaser.Scene {
 		};
 
 		startBtnLabel.on("pointerover", () => {
-			startLabel.setScale(1.08);
 			startBtnBg.setFillStyle(TITLE_START_BTN_HOVER_FILL);
 			startBtnBg.setStrokeStyle(2, TITLE_START_BTN_HOVER_STROKE);
 		});
 		startBtnLabel.on("pointerout", () => {
-			startLabel.setScale(1);
 			startBtnBg.setFillStyle(TITLE_START_BTN_FILL);
 			startBtnBg.setStrokeStyle(2, TITLE_START_BTN_STROKE);
 		});

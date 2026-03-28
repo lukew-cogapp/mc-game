@@ -18,12 +18,23 @@ import {
 	HOVER_HIGHLIGHT_COLOR,
 	HOVER_HIGHLIGHT_LINE_WIDTH,
 	HUD_FRUIT_COLOR,
+	HUD_FRUIT_FONT_SIZE,
+	HUD_FRUIT_MARGIN_RIGHT,
+	HUD_FRUIT_OFFSET_Y,
 	HUD_FRUIT_Y,
 	HUD_JETPACK_POPUP_COLOR,
 	HUD_LIFE_POPUP_COLOR,
 	HUD_LIVES_COLOR,
+	HUD_LIVES_FONT_SIZE,
+	HUD_LIVES_MARGIN_RIGHT,
 	HUD_LIVES_OFFSET_X,
+	HUD_LIVES_Y,
+	HUD_POPUP_FONT_SIZE,
+	HUD_TIMER_BG_COLOR,
 	HUD_TIMER_COLOR,
+	HUD_TIMER_FONT_SIZE,
+	HUD_TIMER_PADDING_X,
+	HUD_TIMER_PADDING_Y,
 	INVENTORY_SLOTS,
 	JETPACK_COLOR,
 	JETPACK_FUEL_MS,
@@ -320,23 +331,21 @@ export class GameScene extends Phaser.Scene {
 		// -- HUD using rexUI --
 		const camW = this.cameras.main.width;
 
-		// Top-right: Lives + Fruit panel
-		this.livesText = this.add
-			.text(0, 0, "", { fontSize: "24px", color: HUD_LIVES_COLOR })
-			.setResolution(TEXT_RESOLUTION);
-		this.fruitText = this.add
-			.text(0, 0, "", { fontSize: "14px", color: HUD_FRUIT_COLOR })
-			.setResolution(TEXT_RESOLUTION);
-
 		// Lives panel — manual positioning (rexUI anchor doesn't work with scrollFactor)
 		this.livesText = this.add
-			.text(camW - 20, 14, "", { fontSize: "24px", color: HUD_LIVES_COLOR })
+			.text(camW - HUD_LIVES_MARGIN_RIGHT, HUD_LIVES_Y, "", {
+				fontSize: HUD_LIVES_FONT_SIZE,
+				color: HUD_LIVES_COLOR,
+			})
 			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(1, 0)
 			.setScrollFactor(0)
 			.setDepth(UI_DEPTH);
 		this.fruitText = this.add
-			.text(camW - 20, 42, "", { fontSize: "16px", color: HUD_FRUIT_COLOR })
+			.text(camW - HUD_FRUIT_MARGIN_RIGHT, HUD_FRUIT_OFFSET_Y, "", {
+				fontSize: HUD_FRUIT_FONT_SIZE,
+				color: HUD_FRUIT_COLOR,
+			})
 			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(1, 0)
 			.setScrollFactor(0)
@@ -344,12 +353,12 @@ export class GameScene extends Phaser.Scene {
 
 		// Timer — top center with background
 		this.timerText = this.add
-			.text(camW / 2, 14, "0:00", {
-				fontSize: "20px",
+			.text(camW / 2, HUD_LIVES_Y, "0:00", {
+				fontSize: HUD_TIMER_FONT_SIZE,
 				color: HUD_TIMER_COLOR,
 				fontStyle: "bold",
-				backgroundColor: "#00000088",
-				padding: { x: 12, y: 6 },
+				backgroundColor: HUD_TIMER_BG_COLOR,
+				padding: { x: HUD_TIMER_PADDING_X, y: HUD_TIMER_PADDING_Y },
 			})
 			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5, 0)
