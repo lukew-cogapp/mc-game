@@ -1,56 +1,65 @@
 import {
-	CLIMB_BAND_HEIGHT,
-	CLIMB_BAND_MAX_ISLANDS,
-	CLIMB_BAND_MIN_ISLANDS,
-	CLIMB_HORIZONTAL_REACH,
-	CLIMB_TOP_BAND_THRESHOLD,
-	CLIMB_TOP_SHRINK_RATIO,
+	ASCENT_HORIZONTAL_REACH_MAX,
+	ASCENT_HORIZONTAL_REACH_MIN,
+	ASCENT_VERTICAL_GAP_MAX,
+	ASCENT_VERTICAL_GAP_MIN,
 	DEAD_TREE_TRUNK_MAX,
 	DEAD_TREE_TRUNK_MIN,
 	DECORATION_FLOWER_CHANCE,
 	DECORATION_MUSHROOM_CHANCE,
 	FRUIT_PER_TREE_MAX,
 	FRUIT_PER_TREE_MIN,
+	GOAL_ISLAND_HEIGHT,
+	GOAL_ISLAND_WIDTH,
 	HOME_ISLAND_HEIGHT,
 	HOME_ISLAND_WIDTH,
 	ISLAND_EDGE_INDENT_CHANCE,
 	ISLAND_EDGE_INDENT_MAX,
-	ISLAND_FLAT_WIDE_HEIGHT_MAX,
-	ISLAND_FLAT_WIDE_HEIGHT_MIN,
-	ISLAND_FLAT_WIDE_WIDTH_MAX,
-	ISLAND_FLAT_WIDE_WIDTH_MIN,
 	ISLAND_GRASS_DEPTH_RATIO,
-	ISLAND_HEIGHT_MAX,
-	ISLAND_HEIGHT_MIN,
 	ISLAND_MARGIN,
-	ISLAND_MIN_GAP,
 	ISLAND_OVERHANG_INDENT,
-	ISLAND_PLACEMENT_ATTEMPTS,
 	ISLAND_SHAPE_FLAT_WIDE_CHANCE,
 	ISLAND_SHAPE_OVERHANG_CHANCE,
 	ISLAND_SHAPE_TALL_NARROW_CHANCE,
-	ISLAND_TALL_NARROW_HEIGHT_MAX,
-	ISLAND_TALL_NARROW_HEIGHT_MIN,
-	ISLAND_TALL_NARROW_WIDTH_MAX,
-	ISLAND_TALL_NARROW_WIDTH_MIN,
 	ISLAND_TOP_WIDTH_RATIO,
-	ISLAND_WIDTH_MAX,
-	ISLAND_WIDTH_MIN,
-	ISLAND_Y_BOTTOM_MARGIN,
-	ISLAND_Y_MIN,
 	LARGE_TREE_CANOPY_MAX_DIST,
 	LARGE_TREE_CANOPY_RADIUS,
 	LARGE_TREE_TRUNK_MAX,
 	LARGE_TREE_TRUNK_MIN,
+	MID_CLIMB_RATIO,
 	PLAYER_RESPAWN_OFFSET_Y,
+	RESOURCE_ISLAND_HEIGHT_MAX,
+	RESOURCE_ISLAND_HEIGHT_MIN,
+	RESOURCE_ISLAND_WIDTH_MAX,
+	RESOURCE_ISLAND_WIDTH_MIN,
+	RESOURCE_VISIBLE_INTERVAL,
+	REWARD_ISLAND_HEIGHT_MAX,
+	REWARD_ISLAND_HEIGHT_MIN,
+	REWARD_ISLAND_WIDTH_MAX,
+	REWARD_ISLAND_WIDTH_MIN,
+	SAFE_ISLAND_HEIGHT_MAX,
+	SAFE_ISLAND_HEIGHT_MIN,
+	SAFE_ISLAND_INTERVAL,
+	SAFE_ISLAND_WIDTH_MAX,
+	SAFE_ISLAND_WIDTH_MIN,
+	SIDE_ISLAND_CHANCE,
+	SIDE_ISLAND_HORIZONTAL_OFFSET_MAX,
+	SIDE_ISLAND_HORIZONTAL_OFFSET_MIN,
+	SIDE_ISLAND_VERTICAL_JITTER,
 	SMALL_TREE_CANOPY_MAX_DIST,
 	SMALL_TREE_CANOPY_RADIUS,
 	SMALL_TREE_TRUNK_MAX,
 	SMALL_TREE_TRUNK_MIN,
 	SPAWN_CLEAR_HALF_WIDTH,
 	SPAWN_CLEAR_HEIGHT,
+	STARTER_ISLAND_COUNT,
+	STARTER_ZONE_RATIO,
 	STRAWBERRY_BUSH_CHANCE,
 	TILE_SIZE,
+	TRANSIT_ISLAND_HEIGHT_MAX,
+	TRANSIT_ISLAND_HEIGHT_MIN,
+	TRANSIT_ISLAND_WIDTH_MAX,
+	TRANSIT_ISLAND_WIDTH_MIN,
 	TREE_CANOPY_MAX_DIST,
 	TREE_CANOPY_RADIUS,
 	TREE_TRUNK_MAX,
@@ -62,11 +71,18 @@ import {
 	WORLD_HEIGHT_TILES,
 	WORLD_WIDTH_TILES,
 } from "../config";
-import { BlockType, type Island } from "../types";
+import { BlockType, type Island, type IslandRole } from "../types";
 import { pickNpcSpawnPositions } from "./npcs";
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
 
 const randomRange = (min: number, max: number): number =>
 	Math.floor(Math.random() * (max - min + 1)) + min;
+
+const clamp = (value: number, min: number, max: number): number =>
+	Math.max(min, Math.min(max, value));
 
 type IslandShape = "normal" | "tall_narrow" | "flat_wide" | "overhang";
 
@@ -85,39 +101,9 @@ const pickIslandShape = (): IslandShape => {
 	return "normal";
 };
 
-const getIslandDimensions = (
-	shape: IslandShape,
-): { width: number; height: number } => {
-	switch (shape) {
-		case "tall_narrow":
-			return {
-				width: randomRange(
-					ISLAND_TALL_NARROW_WIDTH_MIN,
-					ISLAND_TALL_NARROW_WIDTH_MAX,
-				),
-				height: randomRange(
-					ISLAND_TALL_NARROW_HEIGHT_MIN,
-					ISLAND_TALL_NARROW_HEIGHT_MAX,
-				),
-			};
-		case "flat_wide":
-			return {
-				width: randomRange(
-					ISLAND_FLAT_WIDE_WIDTH_MIN,
-					ISLAND_FLAT_WIDE_WIDTH_MAX,
-				),
-				height: randomRange(
-					ISLAND_FLAT_WIDE_HEIGHT_MIN,
-					ISLAND_FLAT_WIDE_HEIGHT_MAX,
-				),
-			};
-		default:
-			return {
-				width: randomRange(ISLAND_WIDTH_MIN, ISLAND_WIDTH_MAX),
-				height: randomRange(ISLAND_HEIGHT_MIN, ISLAND_HEIGHT_MAX),
-			};
-	}
-};
+// ---------------------------------------------------------------------------
+// Biome / block look-ups
+// ---------------------------------------------------------------------------
 
 const getSurfaceBlock = (biome: Island["biome"]): BlockType => {
 	switch (biome) {
@@ -156,12 +142,10 @@ const getDeepBlock = (biome: Island["biome"]): BlockType => {
 	}
 };
 
-/**
- * Apply irregular edge indentations based on biome:
- * - Rocky: jagged (narrower top, wider bottom with random cutouts)
- * - Sandy: smoother/rounder (gentle indentations)
- * - Others: random +/- 1 tile indentations on the sides
- */
+// ---------------------------------------------------------------------------
+// Island shape generation
+// ---------------------------------------------------------------------------
+
 const applyEdgeIrregularity = (grid: BlockType[][], island: Island): void => {
 	for (let y = 0; y < island.height; y++) {
 		let leftEdge = -1;
@@ -264,6 +248,10 @@ const generateIslandShape = (
 
 	return grid;
 };
+
+// ---------------------------------------------------------------------------
+// Trees
+// ---------------------------------------------------------------------------
 
 const addTree = (
 	worldGrid: BlockType[][],
@@ -368,6 +356,10 @@ const addDeadTree = (
 	}
 };
 
+// ---------------------------------------------------------------------------
+// Fruit
+// ---------------------------------------------------------------------------
+
 const getFruitTypesForBiome = (biome: Island["biome"]): BlockType[] => {
 	switch (biome) {
 		case "grassland":
@@ -398,7 +390,6 @@ const addFruitToLeaves = (
 		{ dx: 0, dy: 1 },
 	];
 
-	// Collect candidate positions adjacent to leaves
 	const candidates: { x: number; y: number }[] = [];
 	for (const leaf of leafPositions) {
 		for (const offset of adjacentOffsets) {
@@ -416,7 +407,6 @@ const addFruitToLeaves = (
 		}
 	}
 
-	// Shuffle and pick up to fruitCount positions
 	for (let i = candidates.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));
 		[candidates[i], candidates[j]] = [candidates[j], candidates[i]];
@@ -469,7 +459,6 @@ const addTreesForBiome = (worldGrid: BlockType[][], island: Island): void => {
 				addDeadTree(worldGrid, treeX, treeY);
 				break;
 			case "crystal": {
-				// Crystal biomes get small trees occasionally
 				if (Math.random() < 0.5) {
 					leafPositions = addSmallTree(worldGrid, treeX, treeY);
 				}
@@ -484,6 +473,10 @@ const addTreesForBiome = (worldGrid: BlockType[][], island: Island): void => {
 	}
 };
 
+// ---------------------------------------------------------------------------
+// Decorations & water
+// ---------------------------------------------------------------------------
+
 const addDecorations = (worldGrid: BlockType[][], island: Island): void => {
 	for (let dx = 0; dx < island.width; dx++) {
 		const wx = island.x + dx;
@@ -497,7 +490,6 @@ const addDecorations = (worldGrid: BlockType[][], island: Island): void => {
 		)
 			continue;
 
-		// Only place on surface blocks with air above
 		const surfaceBlock = worldGrid[wy]?.[wx];
 		if (surfaceBlock === undefined || surfaceBlock === BlockType.Air) continue;
 
@@ -506,7 +498,6 @@ const addDecorations = (worldGrid: BlockType[][], island: Island): void => {
 
 		if (island.biome === "mossy" || island.biome === "grassland") {
 			if (Math.random() < STRAWBERRY_BUSH_CHANCE) {
-				// Place a strawberry bush (1-2 blocks wide, 1 block tall)
 				worldGrid[above][wx] = BlockType.Strawberry;
 				const neighborX = wx + 1;
 				if (
@@ -522,12 +513,10 @@ const addDecorations = (worldGrid: BlockType[][], island: Island): void => {
 				worldGrid[above][wx] = BlockType.Mushroom;
 			}
 		} else if (island.biome === "crystal") {
-			// Crystal biomes get mushrooms
 			if (Math.random() < DECORATION_MUSHROOM_CHANCE) {
 				worldGrid[above][wx] = BlockType.Mushroom;
 			}
 		} else if (island.biome === "rocky") {
-			// Rocky biomes get occasional mushrooms
 			if (Math.random() < DECORATION_MUSHROOM_CHANCE * 0.5) {
 				worldGrid[above][wx] = BlockType.Mushroom;
 			}
@@ -545,7 +534,6 @@ const addWaterPool = (worldGrid: BlockType[][], island: Island): void => {
 	);
 	const poolStartX = island.x + randomRange(1, island.width - poolWidth - 1);
 
-	// Dig a small depression and fill with water
 	for (let dx = 0; dx < poolWidth; dx++) {
 		const wx = poolStartX + dx;
 		const surfaceY = island.y;
@@ -558,7 +546,6 @@ const addWaterPool = (worldGrid: BlockType[][], island: Island): void => {
 		)
 			continue;
 
-		// Replace the surface block with water
 		for (let depth = 0; depth < WATER_POOL_DEPTH; depth++) {
 			const wy = surfaceY + depth;
 			if (wy < worldGrid.length && worldGrid[wy][wx] !== BlockType.Air) {
@@ -568,9 +555,10 @@ const addWaterPool = (worldGrid: BlockType[][], island: Island): void => {
 	}
 };
 
-/**
- * Stamp an island's shape onto the world grid.
- */
+// ---------------------------------------------------------------------------
+// Ascent chain helpers
+// ---------------------------------------------------------------------------
+
 const stampIsland = (
 	grid: BlockType[][],
 	island: Island,
@@ -595,30 +583,89 @@ const stampIsland = (
 	}
 };
 
-/**
- * Check that a candidate island doesn't overlap any existing islands.
- */
-const isPlacementValid = (
-	islands: Island[],
-	x: number,
-	y: number,
-	width: number,
-	height: number,
-): boolean =>
-	islands.every((other) => {
-		const dx = Math.abs(x + width / 2 - (other.x + other.width / 2));
-		const dy = Math.abs(y + height / 2 - (other.y + other.height / 2));
-		return dx > width + ISLAND_MIN_GAP || dy > height + ISLAND_MIN_GAP;
-	});
+const getDimensionsForRole = (
+	role: IslandRole,
+): { width: number; height: number } => {
+	switch (role) {
+		case "safe":
+			return {
+				width: randomRange(SAFE_ISLAND_WIDTH_MIN, SAFE_ISLAND_WIDTH_MAX),
+				height: randomRange(SAFE_ISLAND_HEIGHT_MIN, SAFE_ISLAND_HEIGHT_MAX),
+			};
+		case "resource":
+			return {
+				width: randomRange(
+					RESOURCE_ISLAND_WIDTH_MIN,
+					RESOURCE_ISLAND_WIDTH_MAX,
+				),
+				height: randomRange(
+					RESOURCE_ISLAND_HEIGHT_MIN,
+					RESOURCE_ISLAND_HEIGHT_MAX,
+				),
+			};
+		case "reward":
+			return {
+				width: randomRange(REWARD_ISLAND_WIDTH_MIN, REWARD_ISLAND_WIDTH_MAX),
+				height: randomRange(REWARD_ISLAND_HEIGHT_MIN, REWARD_ISLAND_HEIGHT_MAX),
+			};
+		case "transit":
+			return {
+				width: randomRange(TRANSIT_ISLAND_WIDTH_MIN, TRANSIT_ISLAND_WIDTH_MAX),
+				height: randomRange(
+					TRANSIT_ISLAND_HEIGHT_MIN,
+					TRANSIT_ISLAND_HEIGHT_MAX,
+				),
+			};
+		case "goal":
+			return { width: GOAL_ISLAND_WIDTH, height: GOAL_ISLAND_HEIGHT };
+	}
+};
 
-/**
- * Generate islands using a structured vertical-band climb path.
- *
- * The world is divided into horizontal bands (each CLIMB_BAND_HEIGHT rows).
- * The home island sits at the center-bottom. Each band above gets 1-2 islands
- * placed within horizontal reach of the band below, creating a zig-zag upward
- * route. Bands near the top produce smaller, rarer islands.
- */
+const pickBiomeForHeight = (heightRatio: number): Island["biome"] => {
+	if (heightRatio < STARTER_ZONE_RATIO) {
+		return "grassland";
+	}
+	if (heightRatio < STARTER_ZONE_RATIO + MID_CLIMB_RATIO) {
+		const roll = Math.random();
+		if (roll < 0.4) return "mossy";
+		if (roll < 0.7) return "grassland";
+		return "rocky";
+	}
+	const roll = Math.random();
+	if (roll < 0.4) return "crystal";
+	if (roll < 0.7) return "sandy";
+	return "rocky";
+};
+
+const pickMainChainRole = (
+	index: number,
+	totalChainLength: number,
+): IslandRole => {
+	const ratio = index / totalChainLength;
+
+	if (ratio < STARTER_ZONE_RATIO) {
+		return index === 0 ? "safe" : Math.random() < 0.5 ? "safe" : "resource";
+	}
+
+	if (ratio < STARTER_ZONE_RATIO + MID_CLIMB_RATIO) {
+		if (index % SAFE_ISLAND_INTERVAL === 0) return "safe";
+		if (index % RESOURCE_VISIBLE_INTERVAL === 0) return "resource";
+		const roll = Math.random();
+		if (roll < 0.35) return "resource";
+		if (roll < 0.55) return "safe";
+		return "transit";
+	}
+
+	const roll = Math.random();
+	if (roll < 0.3) return "transit";
+	if (roll < 0.6) return "resource";
+	return "safe";
+};
+
+// ---------------------------------------------------------------------------
+// Main generation: "chain of reachable promises"
+// ---------------------------------------------------------------------------
+
 export const generateWorld = (): {
 	grid: BlockType[][];
 	islands: Island[];
@@ -631,170 +678,172 @@ export const generateWorld = (): {
 	);
 
 	const islands: Island[] = [];
-	const biomes: Island["biome"][] = [
-		"grassland",
-		"rocky",
-		"sandy",
-		"mossy",
-		"crystal",
-	];
 
-	// Home island -- larger, centered
+	// 1. Home island (centre-bottom, widest, grassland, safe)
+	const homeY =
+		WORLD_HEIGHT_TILES -
+		Math.floor(WORLD_HEIGHT_TILES * STARTER_ZONE_RATIO) -
+		HOME_ISLAND_HEIGHT;
 	const homeIsland: Island = {
 		x: Math.floor(WORLD_WIDTH_TILES / 2) - Math.floor(HOME_ISLAND_WIDTH / 2),
-		y: Math.floor(WORLD_HEIGHT_TILES / 2),
+		y: homeY,
 		width: HOME_ISLAND_WIDTH,
 		height: HOME_ISLAND_HEIGHT,
 		biome: "grassland",
 		role: "safe",
 	};
 	islands.push(homeIsland);
-
-	// -- Structured climb path: divide into vertical bands --
-	const homeTopY = homeIsland.y;
-	const bandCount = Math.floor((homeTopY - ISLAND_Y_MIN) / CLIMB_BAND_HEIGHT);
-
-	let prevBandCenters: number[] = [
-		Math.floor(homeIsland.x + homeIsland.width / 2),
-	];
-
-	const placeBandIslands = (
-		bandTopY: number,
-		bandBottomY: number,
-		count: number,
-		shrink: boolean,
-		centers: number[],
-	): number[] => {
-		const bandCenters: number[] = [];
-
-		for (let i = 0; i < count; i++) {
-			const shape = pickIslandShape();
-			let { width, height } = getIslandDimensions(shape);
-
-			if (shrink) {
-				width = Math.max(
-					ISLAND_WIDTH_MIN,
-					Math.floor(width * CLIMB_TOP_SHRINK_RATIO),
-				);
-				height = Math.max(
-					ISLAND_HEIGHT_MIN,
-					Math.floor(height * CLIMB_TOP_SHRINK_RATIO),
-				);
-			}
-
-			const refCenter = centers[Math.floor(Math.random() * centers.length)];
-
-			let x: number;
-			let y: number;
-			let attempts = 0;
-			let valid = false;
-
-			do {
-				const minX = Math.max(
-					ISLAND_MARGIN,
-					refCenter - CLIMB_HORIZONTAL_REACH - Math.floor(width / 2),
-				);
-				const maxX = Math.min(
-					WORLD_WIDTH_TILES - width - ISLAND_MARGIN,
-					refCenter + CLIMB_HORIZONTAL_REACH - Math.floor(width / 2),
-				);
-				x =
-					minX <= maxX
-						? randomRange(minX, maxX)
-						: randomRange(
-								ISLAND_MARGIN,
-								WORLD_WIDTH_TILES - width - ISLAND_MARGIN,
-							);
-
-				const minY = Math.max(ISLAND_Y_MIN, bandTopY);
-				const maxY = Math.max(minY, bandBottomY - height);
-				y = randomRange(minY, maxY);
-
-				attempts++;
-				valid = isPlacementValid(islands, x, y, width, height);
-			} while (!valid && attempts < ISLAND_PLACEMENT_ATTEMPTS);
-
-			if (valid) {
-				const island: Island = {
-					x,
-					y,
-					width,
-					height,
-					biome: biomes[randomRange(0, biomes.length - 1)],
-					role: "transit",
-				};
-				islands.push(island);
-				stampIsland(grid, island, shape);
-				bandCenters.push(Math.floor(x + width / 2));
-			}
-		}
-
-		return bandCenters;
-	};
-
-	// Place islands in bands going upward from the home island
-	for (let band = 0; band < bandCount; band++) {
-		const bandTopY = homeTopY - (band + 1) * CLIMB_BAND_HEIGHT;
-		const bandBottomY = bandTopY + CLIMB_BAND_HEIGHT;
-
-		const heightRatio = 1 - bandTopY / WORLD_HEIGHT_TILES;
-		const isTopRegion = heightRatio > CLIMB_TOP_BAND_THRESHOLD;
-		const islandCountInBand = isTopRegion
-			? CLIMB_BAND_MIN_ISLANDS
-			: randomRange(CLIMB_BAND_MIN_ISLANDS, CLIMB_BAND_MAX_ISLANDS);
-
-		const bandCenters = placeBandIslands(
-			bandTopY,
-			bandBottomY,
-			islandCountInBand,
-			isTopRegion,
-			prevBandCenters,
-		);
-
-		if (bandCenters.length > 0) {
-			prevBandCenters = bandCenters;
-		}
-	}
-
-	// Place a few islands below the home island for variety
-	const belowBandTop = homeIsland.y + homeIsland.height;
-	const belowBandBottom = WORLD_HEIGHT_TILES - ISLAND_Y_BOTTOM_MARGIN;
-	const belowBandCount = Math.floor(
-		(belowBandBottom - belowBandTop) / CLIMB_BAND_HEIGHT,
-	);
-
-	let prevBelowCenters: number[] = [
-		Math.floor(homeIsland.x + homeIsland.width / 2),
-	];
-
-	for (let band = 0; band < belowBandCount; band++) {
-		const bTop = belowBandTop + band * CLIMB_BAND_HEIGHT;
-		const bBottom = bTop + CLIMB_BAND_HEIGHT;
-
-		const bandCenters = placeBandIslands(
-			bTop,
-			bBottom,
-			CLIMB_BAND_MIN_ISLANDS,
-			false,
-			prevBelowCenters,
-		);
-
-		if (bandCenters.length > 0) {
-			prevBelowCenters = bandCenters;
-		}
-	}
-
-	// Stamp the home island (always normal shape)
 	stampIsland(grid, homeIsland, "normal");
 
-	// Add trees, decorations, and water pools
-	for (const island of islands) {
-		addTreesForBiome(grid, island);
-		addDecorations(grid, island);
-		addWaterPool(grid, island);
+	// 2. Main ascent chain
+	const topMargin = 8;
+	const chainBottomY = homeIsland.y;
+	const chainTopY = topMargin;
+
+	const avgVerticalGap =
+		(ASCENT_VERTICAL_GAP_MIN + ASCENT_VERTICAL_GAP_MAX) / 2;
+	const estimatedChainLength = Math.ceil(
+		(chainBottomY - chainTopY) / avgVerticalGap,
+	);
+
+	let prevCenterX = homeIsland.x + Math.floor(homeIsland.width / 2);
+	const prevY = homeIsland.y;
+	let goingRight = Math.random() < 0.5;
+
+	// Starter islands near home
+	for (let s = 0; s < STARTER_ISLAND_COUNT - 1; s++) {
+		const role: IslandRole = s === 0 ? "resource" : "safe";
+		const { width, height } = getDimensionsForRole(role);
+		const offsetDir = s % 2 === 0 ? 1 : -1;
+		const hOffset =
+			offsetDir *
+			randomRange(ASCENT_HORIZONTAL_REACH_MIN, ASCENT_HORIZONTAL_REACH_MAX);
+		const x = clamp(
+			prevCenterX + hOffset - Math.floor(width / 2),
+			ISLAND_MARGIN,
+			WORLD_WIDTH_TILES - width - ISLAND_MARGIN,
+		);
+		const y = clamp(
+			prevY - randomRange(2, 4),
+			chainTopY,
+			WORLD_HEIGHT_TILES - height,
+		);
+
+		const island: Island = {
+			x,
+			y,
+			width,
+			height,
+			biome: "grassland",
+			role,
+		};
+		islands.push(island);
+		stampIsland(grid, island, pickIslandShape());
 	}
 
-	// Spawn on top of home island -- clear area above spawn point
+	// Walk the chain upward
+	let chainIndex = 0;
+	let currentY = prevY;
+
+	while (currentY > chainTopY + ASCENT_VERTICAL_GAP_MAX) {
+		const vGap = randomRange(ASCENT_VERTICAL_GAP_MIN, ASCENT_VERTICAL_GAP_MAX);
+		const nextY = currentY - vGap;
+		if (nextY < chainTopY) break;
+
+		const hReach = randomRange(
+			ASCENT_HORIZONTAL_REACH_MIN,
+			ASCENT_HORIZONTAL_REACH_MAX,
+		);
+		const direction = goingRight ? 1 : -1;
+		goingRight = !goingRight;
+
+		const role = pickMainChainRole(chainIndex, estimatedChainLength);
+		const { width, height } = getDimensionsForRole(role);
+
+		const rawX = prevCenterX + direction * hReach - Math.floor(width / 2);
+		const x = clamp(
+			rawX,
+			ISLAND_MARGIN,
+			WORLD_WIDTH_TILES - width - ISLAND_MARGIN,
+		);
+		const y = clamp(nextY, chainTopY, WORLD_HEIGHT_TILES - height);
+
+		const heightRatio = 1 - (y - chainTopY) / (chainBottomY - chainTopY);
+		const biome = pickBiomeForHeight(heightRatio);
+
+		const island: Island = { x, y, width, height, biome, role };
+		islands.push(island);
+		stampIsland(grid, island, pickIslandShape());
+
+		// Optional side island
+		if (Math.random() < SIDE_ISLAND_CHANCE && role !== "transit") {
+			const sideRole: IslandRole = Math.random() < 0.5 ? "reward" : "transit";
+			const sideDims = getDimensionsForRole(sideRole);
+			const sideDir = -direction;
+			const sideHOffset = randomRange(
+				SIDE_ISLAND_HORIZONTAL_OFFSET_MIN,
+				SIDE_ISLAND_HORIZONTAL_OFFSET_MAX,
+			);
+			const sideVJitter = randomRange(
+				-SIDE_ISLAND_VERTICAL_JITTER,
+				SIDE_ISLAND_VERTICAL_JITTER,
+			);
+			const sideCenterX = x + Math.floor(width / 2) + sideDir * sideHOffset;
+			const sideX = clamp(
+				sideCenterX - Math.floor(sideDims.width / 2),
+				ISLAND_MARGIN,
+				WORLD_WIDTH_TILES - sideDims.width - ISLAND_MARGIN,
+			);
+			const sideY = clamp(
+				y + sideVJitter,
+				chainTopY,
+				WORLD_HEIGHT_TILES - sideDims.height,
+			);
+
+			const sideIsland: Island = {
+				x: sideX,
+				y: sideY,
+				width: sideDims.width,
+				height: sideDims.height,
+				biome: sideRole === "reward" ? pickBiomeForHeight(heightRatio) : biome,
+				role: sideRole,
+			};
+			islands.push(sideIsland);
+			stampIsland(grid, sideIsland, pickIslandShape());
+		}
+
+		prevCenterX = x + Math.floor(width / 2);
+		currentY = y;
+		chainIndex++;
+	}
+
+	// 3. Goal island at the top
+	const goalDims = getDimensionsForRole("goal");
+	const goalIsland: Island = {
+		x: clamp(
+			prevCenterX - Math.floor(goalDims.width / 2),
+			ISLAND_MARGIN,
+			WORLD_WIDTH_TILES - goalDims.width - ISLAND_MARGIN,
+		),
+		y: clamp(chainTopY, 2, WORLD_HEIGHT_TILES - goalDims.height),
+		width: goalDims.width,
+		height: goalDims.height,
+		biome: "crystal",
+		role: "goal",
+	};
+	islands.push(goalIsland);
+	stampIsland(grid, goalIsland, "normal");
+
+	// 4. Populate islands
+	for (const island of islands) {
+		if (island.role !== "transit") {
+			addTreesForBiome(grid, island);
+			addWaterPool(grid, island);
+		}
+		addDecorations(grid, island);
+	}
+
+	// 5. Clear spawn area
 	const spawnTileX = Math.floor(homeIsland.x + homeIsland.width / 2);
 	const spawnTileY = homeIsland.y - PLAYER_RESPAWN_OFFSET_Y;
 	for (let dy = 0; dy < SPAWN_CLEAR_HEIGHT; dy++) {
@@ -815,7 +864,7 @@ export const generateWorld = (): {
 	const spawnX = spawnTileX * TILE_SIZE;
 	const spawnY = spawnTileY * TILE_SIZE;
 
-	// Pick NPC spawn positions on non-home islands
+	// 6. NPC placement
 	const npcPositions = pickNpcSpawnPositions(islands);
 
 	return { grid, islands, spawnX, spawnY, npcPositions };

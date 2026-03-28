@@ -1,7 +1,18 @@
 import {
+	createMusic,
+	type MusicPlayer,
+	setMusicVolume,
+	startMusic,
+	stopMusic,
+} from "../audio/music";
+import { loadSettings } from "../audio/settings";
+import {
 	AMBIENT_PARTICLE_ALPHA_MAX,
 	AMBIENT_PARTICLE_ALPHA_MIN,
+	AMBIENT_PARTICLE_ALT_COLOR,
+	AMBIENT_PARTICLE_COLOR_CHANCE,
 	AMBIENT_PARTICLE_COUNT,
+	AMBIENT_PARTICLE_DEPTH,
 	AMBIENT_PARTICLE_RADIUS_MAX,
 	AMBIENT_PARTICLE_RADIUS_MIN,
 	AMBIENT_PARTICLE_SPEED_MAX,
@@ -9,21 +20,57 @@ import {
 	BLOCK_INTERACT_RANGE,
 	CAMERA_LERP,
 	CLOUD_ALPHA,
+	CLOUD_ALPHA_JITTER,
+	CLOUD_CIRCLE_COUNT_BASE,
+	CLOUD_CIRCLE_COUNT_RANGE,
+	CLOUD_CIRCLE_JITTER_X,
+	CLOUD_CIRCLE_JITTER_Y,
+	CLOUD_CIRCLE_SPACING,
 	CLOUD_COUNT,
+	CLOUD_DEPTH,
+	CLOUD_ELLIPSE_HEIGHT_BASE,
+	CLOUD_ELLIPSE_HEIGHT_RANGE,
+	CLOUD_ELLIPSE_WIDTH_BASE,
+	CLOUD_ELLIPSE_WIDTH_RANGE,
 	CLOUD_SPEED,
+	CLOUD_WRAP_MARGIN,
 	COLORS,
 	FRUIT_PER_LIFE,
+	FRUIT_POPUP_DURATION,
+	FRUIT_POPUP_OFFSET_Y,
+	FRUIT_POPUP_RISE,
 	GAMEPAD_RIGHT_STICK_DEADZONE,
+	GOAL_BEACON_BEAM_ALPHA,
 	GOAL_BEACON_BEAM_WIDTH,
 	GOAL_BEACON_COLOR,
+	GOAL_BEACON_GLOW_ALPHA,
+	GOAL_BEACON_GLOW_STEPS,
 	GOAL_BEACON_HEIGHT_TILES,
+	GOAL_BEACON_PULSE_ALPHA,
+	GOAL_BEACON_PULSE_DURATION,
+	GOAL_BEACON_PULSE_SCALE_X,
 	HOVER_HIGHLIGHT_ALPHA,
 	HOVER_HIGHLIGHT_COLOR,
 	HOVER_HIGHLIGHT_LINE_WIDTH,
+	HUD_BG_ALPHA,
+	HUD_BORDER_ALPHA,
+	HUD_BORDER_RADIUS,
+	HUD_DEPTH,
+	HUD_FRUIT_Y,
+	HUD_GLIDE_X,
+	HUD_GLIDE_Y,
+	HUD_LEFT_H,
+	HUD_LEFT_W,
+	HUD_LEFT_X,
+	HUD_LIVES_OFFSET_X,
+	HUD_LIVES_Y,
+	HUD_RIGHT_H,
+	HUD_RIGHT_W,
 	INVENTORY_SLOTS,
 	LAVA_GLOW_ALPHA,
 	LAVA_GLOW_COLOR,
 	LAVA_GLOW_HEIGHT,
+	LAVA_GLOW_STEPS,
 	LAVA_METER_HEIGHT,
 	LAVA_METER_MARGIN_TOP,
 	LAVA_METER_WIDTH,
@@ -37,13 +84,17 @@ import {
 	LEAF_PARTICLE_WOBBLE_AMPLITUDE,
 	LEAF_PARTICLE_WOBBLE_SPEED,
 	MAX_LIVES,
+	MUSIC_VOLUME,
 	PLAYER_HEIGHT,
 	PLAYER_WIDTH,
 	SKY_GRADIENT_BAND_HEIGHT,
 	SKY_GRADIENT_BOTTOM_COLOR,
+	SKY_GRADIENT_DEPTH,
 	SKY_GRADIENT_MID_COLOR,
 	SKY_GRADIENT_TOP_COLOR,
 	TILE_SIZE,
+	TRAIL_PARTICLE_SIZE,
+	UI_DEPTH,
 	WORLD_HEIGHT_TILES,
 	WORLD_WIDTH_TILES,
 } from "../config";
@@ -135,6 +186,10 @@ export class GameScene extends Phaser.Scene {
 		speed: number;
 	}[] = [];
 
+	// Music
+	private music!: MusicPlayer;
+	private musicMuted = false;
+
 	constructor() {
 		super({ key: "GameScene" });
 	}
@@ -145,6 +200,8 @@ export class GameScene extends Phaser.Scene {
 		if (this.input.keyboard) {
 			this.input.keyboard.removeAllListeners();
 		}
+		// Stop background music
+		stopMusic(this.music);
 	}
 
 	create(data?: CharacterConfig): void {
@@ -175,6 +232,23 @@ export class GameScene extends Phaser.Scene {
 		this.lavaGlowGfx = this.add.graphics();
 		this.lavaGlowGfx.setDepth(50);
 		this.lavaGlowGfx.setBlendMode(Phaser.BlendModes.ADD);
+
+		// Generate particle dot texture for trail effects
+		if (!this.textures.exists("particle_dot")) {
+			const gfx = this.add.graphics();
+			gfx.fillStyle(0xffffff);
+			gfx.fillCircle(
+				TRAIL_PARTICLE_SIZE / 2,
+				TRAIL_PARTICLE_SIZE / 2,
+				TRAIL_PARTICLE_SIZE / 2,
+			);
+			gfx.generateTexture(
+				"particle_dot",
+				TRAIL_PARTICLE_SIZE,
+				TRAIL_PARTICLE_SIZE,
+			);
+			gfx.destroy();
+		}
 
 		// Player
 		this.player = createPlayer(this, spawnX, spawnY, data);
@@ -284,54 +358,80 @@ export class GameScene extends Phaser.Scene {
 		this.dayNight = createDayNight(this);
 
 		// -- HUD: Top-left status panel --
-		const hudBgLeft = this.add.rectangle(8, 8, 180, 44, 0x000000, 0.5);
+		const hudBgLeft = this.add.rectangle(
+			HUD_LEFT_X,
+			HUD_LEFT_X,
+			HUD_LEFT_W,
+			HUD_LEFT_H,
+			0x000000,
+			HUD_BG_ALPHA,
+		);
 		hudBgLeft.setOrigin(0, 0);
 		hudBgLeft.setScrollFactor(0);
-		hudBgLeft.setDepth(99);
+		hudBgLeft.setDepth(HUD_DEPTH);
 		const hudBgLeftBorder = this.add.graphics();
-		hudBgLeftBorder.lineStyle(1, 0xffffff, 0.1);
-		hudBgLeftBorder.strokeRoundedRect(8, 8, 180, 44, 6);
+		hudBgLeftBorder.lineStyle(1, 0xffffff, HUD_BORDER_ALPHA);
+		hudBgLeftBorder.strokeRoundedRect(
+			HUD_LEFT_X,
+			HUD_LEFT_X,
+			HUD_LEFT_W,
+			HUD_LEFT_H,
+			HUD_BORDER_RADIUS,
+		);
 		hudBgLeftBorder.setScrollFactor(0);
-		hudBgLeftBorder.setDepth(99);
+		hudBgLeftBorder.setDepth(HUD_DEPTH);
 
-		this.glideIndicator = this.add.text(18, 16, "", {
+		this.glideIndicator = this.add.text(HUD_GLIDE_X, HUD_GLIDE_Y, "", {
 			fontSize: "16px",
 			color: "#ffffff",
 			fontStyle: "bold",
 		});
 		this.glideIndicator.setResolution(2);
 		this.glideIndicator.setScrollFactor(0);
-		this.glideIndicator.setDepth(100);
+		this.glideIndicator.setDepth(UI_DEPTH);
 
 		// -- HUD: Top-right lives panel --
 		const camW = this.cameras.main.width;
-		const hudBgRight = this.add.rectangle(camW - 8, 8, 160, 52, 0x000000, 0.5);
+		const hudBgRight = this.add.rectangle(
+			camW - HUD_LEFT_X,
+			HUD_LEFT_X,
+			HUD_RIGHT_W,
+			HUD_RIGHT_H,
+			0x000000,
+			HUD_BG_ALPHA,
+		);
 		hudBgRight.setOrigin(1, 0);
 		hudBgRight.setScrollFactor(0);
-		hudBgRight.setDepth(99);
+		hudBgRight.setDepth(HUD_DEPTH);
 		const hudBgRightBorder = this.add.graphics();
-		hudBgRightBorder.lineStyle(1, 0xffffff, 0.1);
-		hudBgRightBorder.strokeRoundedRect(camW - 168, 8, 160, 52, 6);
+		hudBgRightBorder.lineStyle(1, 0xffffff, HUD_BORDER_ALPHA);
+		hudBgRightBorder.strokeRoundedRect(
+			camW - HUD_LEFT_X - HUD_RIGHT_W,
+			HUD_LEFT_X,
+			HUD_RIGHT_W,
+			HUD_RIGHT_H,
+			HUD_BORDER_RADIUS,
+		);
 		hudBgRightBorder.setScrollFactor(0);
-		hudBgRightBorder.setDepth(99);
+		hudBgRightBorder.setDepth(HUD_DEPTH);
 
-		this.livesText = this.add.text(camW - 18, 14, "", {
+		this.livesText = this.add.text(camW - HUD_LIVES_OFFSET_X, HUD_LIVES_Y, "", {
 			fontSize: "22px",
 			color: "#ff4444",
 		});
 		this.livesText.setResolution(2);
 		this.livesText.setOrigin(1, 0);
 		this.livesText.setScrollFactor(0);
-		this.livesText.setDepth(100);
+		this.livesText.setDepth(UI_DEPTH);
 
-		this.fruitText = this.add.text(camW - 18, 40, "", {
+		this.fruitText = this.add.text(camW - HUD_LIVES_OFFSET_X, HUD_FRUIT_Y, "", {
 			fontSize: "14px",
 			color: "#ffaa33",
 		});
 		this.fruitText.setResolution(2);
 		this.fruitText.setOrigin(1, 0);
 		this.fruitText.setScrollFactor(0);
-		this.fruitText.setDepth(100);
+		this.fruitText.setDepth(UI_DEPTH);
 
 		this.updateLivesHUD();
 
@@ -351,6 +451,19 @@ export class GameScene extends Phaser.Scene {
 		this.lavaMeterLabel.setResolution(2);
 		this.lavaMeterLabel.setScrollFactor(0);
 		this.lavaMeterLabel.setDepth(100);
+
+		// Background music (respects settings toggle)
+		this.music = createMusic();
+		const audioSettings = loadSettings();
+		if (audioSettings.musicEnabled) {
+			startMusic(this.music);
+		}
+
+		// M key toggles music on/off
+		this.input.keyboard.on("keydown-M", () => {
+			this.musicMuted = !this.musicMuted;
+			setMusicVolume(this.music, this.musicMuted ? 0 : MUSIC_VOLUME);
+		});
 	}
 
 	private updateHoverHighlight = (): void => {
@@ -644,16 +757,21 @@ export class GameScene extends Phaser.Scene {
 				this.player.lives++;
 
 				// Visual feedback
-				const popup = this.add.text(px, py - 30, "+1 \u2764\ufe0f", {
-					fontSize: "18px",
-					color: "#ff4444",
-				});
+				const popup = this.add.text(
+					px,
+					py - FRUIT_POPUP_OFFSET_Y,
+					"+1 \u2764\ufe0f",
+					{
+						fontSize: "18px",
+						color: "#ff4444",
+					},
+				);
 				popup.setOrigin(0.5);
 				this.tweens.add({
 					targets: popup,
-					y: py - 60,
+					y: py - FRUIT_POPUP_RISE,
 					alpha: 0,
-					duration: 800,
+					duration: FRUIT_POPUP_DURATION,
 					onComplete: () => popup.destroy(),
 				});
 			}
@@ -732,21 +850,25 @@ export class GameScene extends Phaser.Scene {
 			const children: Phaser.GameObjects.Ellipse[] = [];
 
 			// Each cloud is 2-3 overlapping white ellipses
-			const circleCount = 2 + Math.floor(Math.random() * 2);
+			const circleCount =
+				CLOUD_CIRCLE_COUNT_BASE +
+				Math.floor(Math.random() * CLOUD_CIRCLE_COUNT_RANGE);
 			for (let c = 0; c < circleCount; c++) {
 				const ellipse = this.add.ellipse(
-					(c - 1) * 30 + Math.random() * 20,
-					Math.random() * 10 - 5,
-					50 + Math.random() * 40,
-					20 + Math.random() * 15,
+					(c - 1) * CLOUD_CIRCLE_SPACING +
+						Math.random() * CLOUD_CIRCLE_JITTER_X,
+					Math.random() * CLOUD_CIRCLE_JITTER_Y - CLOUD_CIRCLE_JITTER_Y / 2,
+					CLOUD_ELLIPSE_WIDTH_BASE + Math.random() * CLOUD_ELLIPSE_WIDTH_RANGE,
+					CLOUD_ELLIPSE_HEIGHT_BASE +
+						Math.random() * CLOUD_ELLIPSE_HEIGHT_RANGE,
 					COLORS.white,
-					CLOUD_ALPHA + Math.random() * 0.05,
+					CLOUD_ALPHA + Math.random() * CLOUD_ALPHA_JITTER,
 				);
 				children.push(ellipse);
 			}
 
 			const container = this.add.container(cloudX, cloudY, children);
-			container.setDepth(-10); // Behind all game objects
+			container.setDepth(CLOUD_DEPTH);
 			this.clouds.push(container);
 		}
 	};
@@ -756,8 +878,8 @@ export class GameScene extends Phaser.Scene {
 
 		for (const cloud of this.clouds) {
 			cloud.x += CLOUD_SPEED;
-			if (cloud.x > worldW + 100) {
-				cloud.x = -100;
+			if (cloud.x > worldW + CLOUD_WRAP_MARGIN) {
+				cloud.x = -CLOUD_WRAP_MARGIN;
 			}
 		}
 	};
@@ -804,7 +926,7 @@ export class GameScene extends Phaser.Scene {
 		const worldW = WORLD_WIDTH_TILES * TILE_SIZE;
 		const worldH = WORLD_HEIGHT_TILES * TILE_SIZE;
 		const gfx = this.add.graphics();
-		gfx.setDepth(-20);
+		gfx.setDepth(SKY_GRADIENT_DEPTH);
 
 		const bands = Math.ceil(worldH / SKY_GRADIENT_BAND_HEIGHT);
 		for (let i = 0; i < bands; i++) {
@@ -856,10 +978,15 @@ export class GameScene extends Phaser.Scene {
 		// Golden glow at the top
 		const gfx = this.add.graphics();
 		gfx.setDepth(-15);
-		for (let i = 0; i < 10; i++) {
-			const alpha = 0.15 * (1 - i / 10);
+		for (let i = 0; i < GOAL_BEACON_GLOW_STEPS; i++) {
+			const alpha = GOAL_BEACON_GLOW_ALPHA * (1 - i / GOAL_BEACON_GLOW_STEPS);
 			gfx.fillStyle(GOAL_BEACON_COLOR, alpha);
-			gfx.fillRect(0, i * (beaconH / 10), worldW, beaconH / 10 + 1);
+			gfx.fillRect(
+				0,
+				i * (beaconH / GOAL_BEACON_GLOW_STEPS),
+				worldW,
+				beaconH / GOAL_BEACON_GLOW_STEPS + 1,
+			);
 		}
 
 		// Central light beam
@@ -870,7 +997,7 @@ export class GameScene extends Phaser.Scene {
 			GOAL_BEACON_BEAM_WIDTH,
 			beaconH,
 			GOAL_BEACON_COLOR,
-			0.08,
+			GOAL_BEACON_BEAM_ALPHA,
 		);
 		beam.setDepth(-14);
 		beam.setBlendMode(Phaser.BlendModes.ADD);
@@ -878,9 +1005,9 @@ export class GameScene extends Phaser.Scene {
 		// Pulse the beam
 		this.tweens.add({
 			targets: beam,
-			alpha: 0.15,
-			scaleX: 1.2,
-			duration: 2000,
+			alpha: GOAL_BEACON_PULSE_ALPHA,
+			scaleX: GOAL_BEACON_PULSE_SCALE_X,
+			duration: GOAL_BEACON_PULSE_DURATION,
 			yoyo: true,
 			repeat: -1,
 			ease: "Sine.easeInOut",
@@ -893,7 +1020,7 @@ export class GameScene extends Phaser.Scene {
 		const glowH = LAVA_GLOW_HEIGHT;
 
 		// Gradient: red at lava surface fading to transparent above
-		const steps = 8;
+		const steps = LAVA_GLOW_STEPS;
 		for (let i = 0; i < steps; i++) {
 			const t = i / steps;
 			const alpha = LAVA_GLOW_ALPHA * (1 - t);
@@ -926,13 +1053,16 @@ export class GameScene extends Phaser.Scene {
 					(AMBIENT_PARTICLE_SPEED_MAX - AMBIENT_PARTICLE_SPEED_MIN);
 
 			// Randomly pick white or light blue
-			const color = Math.random() < 0.5 ? 0xffffff : 0xaaddff;
+			const color =
+				Math.random() < AMBIENT_PARTICLE_COLOR_CHANCE
+					? 0xffffff
+					: AMBIENT_PARTICLE_ALT_COLOR;
 
 			const x = Math.random() * worldW;
 			const y = Math.random() * worldH;
 
 			const circle = this.add.circle(x, y, radius, color, alpha);
-			circle.setDepth(-5); // Behind game objects, in front of sky
+			circle.setDepth(AMBIENT_PARTICLE_DEPTH);
 
 			this.ambientParticles.push({ circle, speed });
 		}

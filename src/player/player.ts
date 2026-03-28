@@ -1,19 +1,52 @@
 import {
 	COLORS,
+	COYOTE_TIME_MS,
 	DEATH_INVULNERABLE_MS,
 	DOUBLE_JUMP_VELOCITY,
 	GAMEPAD_STICK_DEADZONE,
 	GLIDE_GRAVITY,
 	GLIDE_HORIZONTAL_BOOST,
 	GRAVITY,
+	JUMP_BUFFER_MS,
 	JUMP_VELOCITY,
+	PLAYER_ACCELERATION,
+	PLAYER_BOB_AMPLITUDE,
+	PLAYER_BOB_SPEED,
+	PLAYER_COLLISION_INSET,
+	PLAYER_DECELERATION,
+	PLAYER_FOOT_SHADOW_HEIGHT,
+	PLAYER_FOOT_SHADOW_OFFSET_Y,
+	PLAYER_FOOT_SHADOW_WIDTH_EXTRA,
+	PLAYER_HAT_OFFSET_Y,
+	PLAYER_HEAD_OFFSET_Y,
+	PLAYER_HEAD_RADIUS,
 	PLAYER_HEIGHT,
+	PLAYER_INVULNERABLE_DIM_ALPHA,
+	PLAYER_INVULNERABLE_FLASH_SPEED,
+	PLAYER_OUTLINE_ALPHA,
+	PLAYER_OUTLINE_EXTRA,
 	PLAYER_OUTLINE_OFFSET,
 	PLAYER_SHADOW_ALPHA,
 	PLAYER_SPEED,
 	PLAYER_WIDTH,
 	STARTING_LIVES,
 	TILE_SIZE,
+	TRAIL_BUBBLES_GRAVITY_Y,
+	TRAIL_BUBBLES_LIFESPAN,
+	TRAIL_BUBBLES_SPEED,
+	TRAIL_EMIT_FREQUENCY,
+	TRAIL_FIRE_GRAVITY_Y,
+	TRAIL_FIRE_LIFESPAN,
+	TRAIL_FIRE_SPEED,
+	TRAIL_HEARTS_GRAVITY_Y,
+	TRAIL_HEARTS_LIFESPAN,
+	TRAIL_HEARTS_SPEED,
+	TRAIL_PARTICLE_OFFSET_Y,
+	TRAIL_RAINBOW_LIFESPAN,
+	TRAIL_RAINBOW_SPEED,
+	TRAIL_SPARKLE_GRAVITY_Y,
+	TRAIL_SPARKLE_LIFESPAN,
+	TRAIL_SPARKLE_SPEED,
 	WATER_SPEED_MULTIPLIER,
 } from "../config";
 import type { CharacterConfig } from "../scenes/title-scene";
@@ -32,14 +65,6 @@ const HAT_EMOJI_MAP: Record<string, string> = {
 
 import { drawFace } from "./face-renderer";
 
-const TRAIL_EMOJI_MAP: Record<string, string> = {
-	sparkles: "\u2728",
-	hearts: "\u{1f496}",
-	bubbles: "\u{1fae7}",
-	fire: "\u{1f525}",
-	rainbow: "\u{1f308}",
-};
-
 export interface Player {
 	container: Phaser.GameObjects.Container;
 	velocityX: number;
@@ -56,7 +81,78 @@ export interface Player {
 	lives: number;
 	invulnerableTimer: number;
 	fruitEaten: number;
+	coyoteTimer: number;
+	jumpBufferTimer: number;
+	wasGrounded: boolean;
+	trailEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null;
 }
+
+const TRAIL_EMITTER_CONFIGS: Record<
+	string,
+	Phaser.Types.GameObjects.Particles.ParticleEmitterConfig
+> = {
+	sparkles: {
+		speed: TRAIL_SPARKLE_SPEED,
+		gravityY: TRAIL_SPARKLE_GRAVITY_Y,
+		lifespan: TRAIL_SPARKLE_LIFESPAN,
+		alpha: { start: 0.8, end: 0 },
+		scale: { start: 0.5, end: 0 },
+		tint: 0xffdd44,
+		frequency: TRAIL_EMIT_FREQUENCY,
+		emitting: false,
+	},
+	hearts: {
+		speed: TRAIL_HEARTS_SPEED,
+		gravityY: TRAIL_HEARTS_GRAVITY_Y,
+		lifespan: TRAIL_HEARTS_LIFESPAN,
+		alpha: { start: 0.8, end: 0 },
+		scale: { start: 0.6, end: 0.1 },
+		tint: 0xff6688,
+		frequency: TRAIL_EMIT_FREQUENCY,
+		emitting: false,
+	},
+	bubbles: {
+		speed: TRAIL_BUBBLES_SPEED,
+		gravityY: TRAIL_BUBBLES_GRAVITY_Y,
+		lifespan: TRAIL_BUBBLES_LIFESPAN,
+		alpha: { start: 0.7, end: 0 },
+		scale: { start: 0.5, end: 0.2 },
+		tint: 0x88ccff,
+		frequency: TRAIL_EMIT_FREQUENCY,
+		emitting: false,
+	},
+	fire: {
+		speed: TRAIL_FIRE_SPEED,
+		gravityY: TRAIL_FIRE_GRAVITY_Y,
+		lifespan: TRAIL_FIRE_LIFESPAN,
+		alpha: { start: 0.9, end: 0 },
+		scale: { start: 0.5, end: 0 },
+		tint: [0xff4400, 0xff8800, 0xffaa00],
+		frequency: TRAIL_EMIT_FREQUENCY,
+		emitting: false,
+	},
+	rainbow: {
+		speed: TRAIL_RAINBOW_SPEED,
+		lifespan: TRAIL_RAINBOW_LIFESPAN,
+		alpha: { start: 0.8, end: 0 },
+		scale: { start: 0.4, end: 0 },
+		tint: [0xff0000, 0xff8800, 0xffff00, 0x00ff00, 0x0088ff, 0x8800ff],
+		frequency: TRAIL_EMIT_FREQUENCY,
+		emitting: false,
+	},
+};
+
+const createTrailEmitter = (
+	scene: Phaser.Scene,
+	trailType: string,
+): Phaser.GameObjects.Particles.ParticleEmitter | null => {
+	const config = TRAIL_EMITTER_CONFIGS[trailType];
+	if (!config) return null;
+
+	const emitter = scene.add.particles(0, 0, "particle_dot", config);
+	emitter.start();
+	return emitter;
+};
 
 export const createPlayer = (
 	scene: Phaser.Scene,
@@ -70,9 +166,9 @@ export const createPlayer = (
 	// Shadow ellipse under player's feet for grounding
 	const footShadow = scene.add.ellipse(
 		0,
-		PLAYER_HEIGHT / 2 + 2,
-		PLAYER_WIDTH + 4,
-		6,
+		PLAYER_HEIGHT / 2 + PLAYER_FOOT_SHADOW_OFFSET_Y,
+		PLAYER_WIDTH + PLAYER_FOOT_SHADOW_WIDTH_EXTRA,
+		PLAYER_FOOT_SHADOW_HEIGHT,
 		0x000000,
 		PLAYER_SHADOW_ALPHA,
 	);
@@ -81,11 +177,11 @@ export const createPlayer = (
 	const bodyOutline = scene.add.rectangle(
 		PLAYER_OUTLINE_OFFSET,
 		PLAYER_OUTLINE_OFFSET,
-		PLAYER_WIDTH + 2,
-		PLAYER_HEIGHT + 2,
+		PLAYER_WIDTH + PLAYER_OUTLINE_EXTRA,
+		PLAYER_HEIGHT + PLAYER_OUTLINE_EXTRA,
 		0x000000,
 	);
-	bodyOutline.setAlpha(0.3);
+	bodyOutline.setAlpha(PLAYER_OUTLINE_ALPHA);
 
 	const body = scene.add.rectangle(
 		0,
@@ -94,7 +190,12 @@ export const createPlayer = (
 		PLAYER_HEIGHT,
 		bodyColor,
 	);
-	const head = scene.add.circle(0, -PLAYER_HEIGHT / 2 - 4, 6, skinColor);
+	const head = scene.add.circle(
+		0,
+		-PLAYER_HEIGHT / 2 - PLAYER_HEAD_OFFSET_Y,
+		PLAYER_HEAD_RADIUS,
+		skinColor,
+	);
 
 	const children: Phaser.GameObjects.GameObject[] = [
 		footShadow,
@@ -107,9 +208,14 @@ export const createPlayer = (
 	const hatKey = characterConfig?.hat ?? "none";
 	if (hatKey !== "none" && HAT_EMOJI_MAP[hatKey]) {
 		const hat = scene.add
-			.text(0, -PLAYER_HEIGHT / 2 - 16, HAT_EMOJI_MAP[hatKey], {
-				fontSize: "12px",
-			})
+			.text(
+				0,
+				-PLAYER_HEIGHT / 2 - PLAYER_HAT_OFFSET_Y,
+				HAT_EMOJI_MAP[hatKey],
+				{
+					fontSize: "12px",
+				},
+			)
 			.setOrigin(0.5);
 		children.push(hat);
 	}
@@ -118,12 +224,16 @@ export const createPlayer = (
 	const faceKey = characterConfig?.face ?? "none";
 	if (faceKey !== "none") {
 		const faceGfx = scene.add.graphics();
-		faceGfx.setPosition(0, -PLAYER_HEIGHT / 2 - 4);
+		faceGfx.setPosition(0, -PLAYER_HEIGHT / 2 - PLAYER_HEAD_OFFSET_Y);
 		drawFace(faceGfx, faceKey);
 		children.push(faceGfx);
 	}
 
 	const container = scene.add.container(x, y, children);
+
+	const trailType = characterConfig?.trail ?? "none";
+	const trailEmitter =
+		trailType !== "none" ? createTrailEmitter(scene, trailType) : null;
 
 	return {
 		container,
@@ -136,11 +246,15 @@ export const createPlayer = (
 		facingRight: true,
 		spawnX: x,
 		spawnY: y,
-		trail: characterConfig?.trail ?? "none",
+		trail: trailType,
 		trailTimer: 0,
 		lives: STARTING_LIVES,
 		invulnerableTimer: 0,
 		fruitEaten: 0,
+		coyoteTimer: 0,
+		jumpBufferTimer: 0,
+		wasGrounded: false,
+		trailEmitter,
 	};
 };
 
@@ -308,7 +422,9 @@ export const updatePlayer = (
 		player.invulnerableTimer -= delta;
 		// Flash effect during invulnerability
 		player.container.setAlpha(
-			Math.sin(player.invulnerableTimer * 0.01) > 0 ? 1 : 0.3,
+			Math.sin(player.invulnerableTimer * PLAYER_INVULNERABLE_FLASH_SPEED) > 0
+				? 1
+				: PLAYER_INVULNERABLE_DIM_ALPHA,
 		);
 	} else {
 		player.container.setAlpha(1);
@@ -321,15 +437,34 @@ export const updatePlayer = (
 	// Check if player is submerged in water
 	const inWater = isInWater(grid, player.container.x, player.container.y);
 	const speedMultiplier = inWater ? WATER_SPEED_MULTIPLIER : 1;
+	const targetSpeed = PLAYER_SPEED * speedMultiplier;
 
-	// Horizontal input
-	player.velocityX = 0;
+	// Acceleration-based horizontal movement
 	if (input.left) {
-		player.velocityX = -PLAYER_SPEED * speedMultiplier;
+		player.velocityX = Math.max(
+			player.velocityX - PLAYER_ACCELERATION * dt,
+			-targetSpeed,
+		);
 		player.facingRight = false;
 	} else if (input.right) {
-		player.velocityX = PLAYER_SPEED * speedMultiplier;
+		player.velocityX = Math.min(
+			player.velocityX + PLAYER_ACCELERATION * dt,
+			targetSpeed,
+		);
 		player.facingRight = true;
+	} else {
+		// Decelerate toward 0
+		if (player.velocityX > 0) {
+			player.velocityX = Math.max(
+				0,
+				player.velocityX - PLAYER_DECELERATION * dt,
+			);
+		} else if (player.velocityX < 0) {
+			player.velocityX = Math.min(
+				0,
+				player.velocityX + PLAYER_DECELERATION * dt,
+			);
+		}
 	}
 
 	// Gliding
@@ -342,18 +477,56 @@ export const updatePlayer = (
 	const currentGravity = player.isGliding ? GLIDE_GRAVITY : GRAVITY;
 	player.velocityY += currentGravity * dt;
 
+	// Coyote time: track when player leaves ground
+	if (player.wasGrounded && !player.isGrounded) {
+		player.coyoteTimer = COYOTE_TIME_MS;
+	}
+	if (player.coyoteTimer > 0) {
+		player.coyoteTimer -= delta;
+	}
+
+	// Jump buffering: track jump presses while airborne
+	if (player.jumpBufferTimer > 0) {
+		player.jumpBufferTimer -= delta;
+	}
+
 	// Jump / Double jump (edge-triggered — must release and re-press)
 	const jumpPressed = input.jump && !player.jumpWasDown;
-	if (jumpPressed) {
-		if (player.isGrounded) {
-			player.velocityY = JUMP_VELOCITY;
-			player.isGrounded = false;
-			player.canDoubleJump = true;
-		} else if (player.canDoubleJump) {
-			player.velocityY = DOUBLE_JUMP_VELOCITY;
-			player.canDoubleJump = false;
-		}
+
+	// Buffer the jump if pressed while airborne
+	if (jumpPressed && !player.isGrounded && player.coyoteTimer <= 0) {
+		player.jumpBufferTimer = JUMP_BUFFER_MS;
 	}
+
+	// Determine if jump should execute (grounded, coyote time, or buffered)
+	const canCoyoteJump = !player.isGrounded && player.coyoteTimer > 0;
+	const shouldJump = jumpPressed && (player.isGrounded || canCoyoteJump);
+
+	if (shouldJump) {
+		player.velocityY = JUMP_VELOCITY;
+		player.isGrounded = false;
+		player.coyoteTimer = 0;
+		player.jumpBufferTimer = 0;
+		player.canDoubleJump = true;
+	} else if (jumpPressed && player.canDoubleJump) {
+		player.velocityY = DOUBLE_JUMP_VELOCITY;
+		player.canDoubleJump = false;
+		player.jumpBufferTimer = 0;
+	}
+
+	// Jump buffer: auto-jump on landing if buffer is active
+	if (player.isGrounded && player.jumpBufferTimer > 0) {
+		player.velocityY = JUMP_VELOCITY;
+		player.isGrounded = false;
+		player.jumpBufferTimer = 0;
+		player.canDoubleJump = true;
+	}
+
+	// Variable jump height: cut velocity when jump released early while ascending
+	if (!input.jump && player.jumpWasDown && player.velocityY < 0) {
+		player.velocityY *= 0.5;
+	}
+
 	player.jumpWasDown = input.jump;
 
 	// Move horizontally
@@ -419,6 +592,7 @@ export const updatePlayer = (
 	}
 
 	// Check grounded (for next frame)
+	player.wasGrounded = player.isGrounded;
 	const groundCheckLeft = checkCollision(
 		grid,
 		player.container.x - halfW + 2,
@@ -452,29 +626,12 @@ export const updatePlayer = (
 		player.container.y += bobOffset;
 	}
 
-	// Trail particles
-	if (player.trail !== "none" && TRAIL_EMOJI_MAP[player.trail]) {
-		player.trailTimer += delta;
-		if (player.trailTimer > 150) {
-			player.trailTimer = 0;
-			const scene = player.container.scene;
-			const emoji = TRAIL_EMOJI_MAP[player.trail];
-			if (emoji) {
-				const particle = scene.add.text(
-					player.container.x + (Math.random() - 0.5) * 10,
-					player.container.y + halfH,
-					emoji,
-					{ fontSize: "10px" },
-				);
-				scene.tweens.add({
-					targets: particle,
-					y: particle.y + 20,
-					alpha: 0,
-					duration: 600,
-					onComplete: () => particle.destroy(),
-				});
-			}
-		}
+	// Trail particle emitter: follow player position
+	if (player.trailEmitter) {
+		player.trailEmitter.setPosition(
+			player.container.x,
+			player.container.y + TRAIL_PARTICLE_OFFSET_Y,
+		);
 	}
 
 	return false;

@@ -1,3 +1,19 @@
+import {
+	GAMEOVER_BG_COLOR,
+	GAMEOVER_INPUT_DELAY,
+	GAMEOVER_OVERLAY_ALPHA,
+	GAMEOVER_OVERLAY_COLOR,
+	GAMEOVER_PROMPT_DELAY,
+	GAMEOVER_PROMPT_FADE_DURATION,
+	GAMEOVER_PROMPT_OFFSET_Y,
+	GAMEOVER_PROMPT_PULSE_ALPHA,
+	GAMEOVER_PROMPT_PULSE_DURATION,
+	GAMEOVER_SUBTITLE_DELAY,
+	GAMEOVER_SUBTITLE_FADE_DURATION,
+	GAMEOVER_TITLE_FADE_DURATION,
+	GAMEOVER_TITLE_OFFSET_Y,
+} from "../config";
+
 export class GameOverScene extends Phaser.Scene {
 	private canAcceptInput = false;
 	private gpButtonWasDown = false;
@@ -18,15 +34,15 @@ export class GameOverScene extends Phaser.Scene {
 		this.canAcceptInput = false;
 		this.gpButtonWasDown = true; // Prevent instant skip from held A button
 
-		this.cameras.main.setBackgroundColor(0x0a0a0a);
+		this.cameras.main.setBackgroundColor(GAMEOVER_BG_COLOR);
 
 		const overlay = this.add.graphics();
-		overlay.fillStyle(0x110000, 0.6);
+		overlay.fillStyle(GAMEOVER_OVERLAY_COLOR, GAMEOVER_OVERLAY_ALPHA);
 		overlay.fillRect(0, 0, width, height);
 
 		// GAME OVER text
 		const title = this.add
-			.text(cx, cy - 60, "GAME OVER", {
+			.text(cx, cy + GAMEOVER_TITLE_OFFSET_Y, "GAME OVER", {
 				fontSize: "64px",
 				color: "#ff4444",
 				fontStyle: "bold",
@@ -37,7 +53,7 @@ export class GameOverScene extends Phaser.Scene {
 		this.tweens.add({
 			targets: title,
 			alpha: 1,
-			duration: 800,
+			duration: GAMEOVER_TITLE_FADE_DURATION,
 			ease: "Power2",
 		});
 
@@ -52,28 +68,33 @@ export class GameOverScene extends Phaser.Scene {
 		this.tweens.add({
 			targets: subtitle,
 			alpha: 1,
-			duration: 600,
-			delay: 500,
+			duration: GAMEOVER_SUBTITLE_FADE_DURATION,
+			delay: GAMEOVER_SUBTITLE_DELAY,
 		});
 
 		const prompt = this.add
-			.text(cx, cy + 80, "Press any key or button to continue", {
-				fontSize: "16px",
-				color: "#888888",
-			})
+			.text(
+				cx,
+				cy + GAMEOVER_PROMPT_OFFSET_Y,
+				"Press any key or button to continue",
+				{
+					fontSize: "16px",
+					color: "#888888",
+				},
+			)
 			.setOrigin(0.5)
 			.setAlpha(0);
 
 		this.tweens.add({
 			targets: prompt,
 			alpha: 1,
-			duration: 500,
-			delay: 1500,
+			duration: GAMEOVER_PROMPT_FADE_DURATION,
+			delay: GAMEOVER_PROMPT_DELAY,
 			onComplete: () => {
 				this.tweens.add({
 					targets: prompt,
-					alpha: 0.4,
-					duration: 800,
+					alpha: GAMEOVER_PROMPT_PULSE_ALPHA,
+					duration: GAMEOVER_PROMPT_PULSE_DURATION,
 					yoyo: true,
 					repeat: -1,
 				});
@@ -81,7 +102,7 @@ export class GameOverScene extends Phaser.Scene {
 		});
 
 		// Enable input after delay
-		this.time.delayedCall(1500, () => {
+		this.time.delayedCall(GAMEOVER_INPUT_DELAY, () => {
 			this.canAcceptInput = true;
 
 			const goHome = () => {

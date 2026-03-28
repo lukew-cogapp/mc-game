@@ -6,10 +6,14 @@ export const WORLD_HEIGHT_TILES = 100;
 // -- Physics --
 export const GRAVITY = 800;
 export const PLAYER_SPEED = 200;
+export const PLAYER_ACCELERATION = 2000;
+export const PLAYER_DECELERATION = 1500;
 export const JUMP_VELOCITY = -350;
 export const GLIDE_GRAVITY = 100;
 export const GLIDE_HORIZONTAL_BOOST = 1.3;
 export const DOUBLE_JUMP_VELOCITY = -300;
+export const COYOTE_TIME_MS = 80;
+export const JUMP_BUFFER_MS = 100;
 
 // -- Island Generation --
 export const HOME_ISLAND_WIDTH = 16;
@@ -327,6 +331,25 @@ export const NPC_BUBBLE_FONT_SIZE = "11px";
 export const NPC_BUBBLE_MAX_WIDTH = 180;
 export const NPC_BUBBLE_FADE_DURATION = 300;
 
+// -- Player Trail Particles --
+export const TRAIL_PARTICLE_SIZE = 4;
+export const TRAIL_PARTICLE_OFFSET_Y = 10;
+export const TRAIL_SPARKLE_SPEED = 30;
+export const TRAIL_SPARKLE_GRAVITY_Y = -20;
+export const TRAIL_SPARKLE_LIFESPAN = 600;
+export const TRAIL_HEARTS_SPEED = 20;
+export const TRAIL_HEARTS_GRAVITY_Y = -15;
+export const TRAIL_HEARTS_LIFESPAN = 800;
+export const TRAIL_BUBBLES_SPEED = 40;
+export const TRAIL_BUBBLES_GRAVITY_Y = -40;
+export const TRAIL_BUBBLES_LIFESPAN = 500;
+export const TRAIL_FIRE_SPEED = 50;
+export const TRAIL_FIRE_GRAVITY_Y = 20;
+export const TRAIL_FIRE_LIFESPAN = 400;
+export const TRAIL_RAINBOW_SPEED = 30;
+export const TRAIL_RAINBOW_LIFESPAN = 500;
+export const TRAIL_EMIT_FREQUENCY = 50;
+
 // -- Falling Leaves --
 export const LEAF_PARTICLE_MAX = 10;
 export const LEAF_PARTICLE_INTERVAL = 2500;
@@ -336,3 +359,227 @@ export const LEAF_PARTICLE_HEIGHT = 2;
 export const LEAF_PARTICLE_DRIFT_SPEED = 15;
 export const LEAF_PARTICLE_WOBBLE_AMPLITUDE = 8;
 export const LEAF_PARTICLE_WOBBLE_SPEED = 3;
+
+// -- Music --
+export const MUSIC_VOLUME = 0.15;
+export const MUSIC_BPM = 100;
+export const MUSIC_LEAD_VOLUME = 0.3;
+export const MUSIC_BASS_VOLUME = 0.2;
+export const MUSIC_ATTACK_TIME = 0.02;
+export const MUSIC_DECAY_TIME = 0.05;
+export const MUSIC_SUSTAIN_LEVEL = 0.6;
+
+// -- Title Scene Layout --
+export const TITLE_BG_COLOR_TOP = 0x0a0a2e;
+export const TITLE_BG_COLOR_BOTTOM = 0x1a1a3e;
+export const TITLE_PANEL_BG = 0x111133;
+export const TITLE_PANEL_BORDER = 0x444477;
+export const TITLE_PANEL_ALPHA = 0.85;
+export const TITLE_PANEL_INNER_GLOW_COLOR = 0x223366;
+export const TITLE_PANEL_INNER_GLOW_ALPHA = 0.3;
+export const TITLE_PANEL_RADIUS = 16;
+export const TITLE_CELL_BG = 0x1a1a44;
+export const TITLE_CELL_BG_HOVER = 0x2a2a55;
+export const TITLE_CELL_SELECTED_BORDER = 0xffdd44;
+export const TITLE_CELL_UNSELECTED_BORDER = 0x444466;
+export const TITLE_CELL_SIZE = 48;
+export const TITLE_CELL_GAP = 10;
+export const TITLE_PREVIEW_SCALE = 3;
+export const TITLE_PARTICLE_COUNT = 15;
+export const TITLE_PARTICLE_RADIUS = 1.5;
+export const TITLE_PARTICLE_ALPHA_BASE = 0.15;
+export const TITLE_PARTICLE_ALPHA_RANGE = 0.2;
+export const TITLE_PARTICLE_DRIFT_BASE = 30;
+export const TITLE_PARTICLE_DRIFT_RANGE = 40;
+export const TITLE_PARTICLE_DURATION_BASE = 3000;
+export const TITLE_PARTICLE_DURATION_RANGE = 4000;
+export const TITLE_Y = 36;
+export const TITLE_SHADOW_OFFSET = 2;
+export const TITLE_SUBTITLE_Y = 80;
+export const TITLE_GLOW_ALPHA = 0.3;
+export const TITLE_SHADOW_ALPHA = 0.5;
+export const TITLE_LEFT_PANEL_OFFSET_X = -200;
+export const TITLE_PANEL_TOP = 120;
+export const TITLE_LEFT_PANEL_W = 180;
+export const TITLE_PANEL_H = 280;
+export const TITLE_PLATFORM_OFFSET_Y = 160;
+export const TITLE_CHAR_OFFSET_Y = 30;
+export const TITLE_CHAR_GLOW_RADIUS = 60;
+export const TITLE_CHAR_GLOW_ALPHA = 0.15;
+export const TITLE_CHAR_GLOW_COLOR = 0x4488cc;
+export const TITLE_IDLE_BOUNCE_Y = -8;
+export const TITLE_IDLE_BOUNCE_DURATION = 1200;
+export const TITLE_NAME_OFFSET_Y = 40;
+export const TITLE_DICE_OFFSET_Y = 20;
+export const TITLE_RIGHT_PANEL_OFFSET_X = 120;
+export const TITLE_RIGHT_PANEL_W = 320;
+export const TITLE_TAB_OFFSET_Y = 20;
+export const TITLE_TAB_GAP = 2;
+export const TITLE_TAB_INDICATOR_HEIGHT = 4;
+export const TITLE_TAB_ACTIVE_COLOR = "#ffdd44";
+export const TITLE_TAB_INACTIVE_COLOR = "#888899";
+export const TITLE_TAB_HOVER_COLOR = "#bbbbcc";
+export const TITLE_TAB_ACTIVE_ALPHA = 1;
+export const TITLE_TAB_INACTIVE_ALPHA = 0.6;
+export const TITLE_TAB_HOVER_ALPHA = 0.85;
+export const TITLE_TAB_CONTENT_OFFSET_Y = 42;
+export const TITLE_TAB_CONTENT_PADDING = 16;
+export const TITLE_START_BTN_OFFSET_Y = 50;
+export const TITLE_START_GLOW_W = 280;
+export const TITLE_START_GLOW_H = 64;
+export const TITLE_START_GLOW_COLOR = 0xff8800;
+export const TITLE_START_GLOW_ALPHA = 0.2;
+export const TITLE_START_BTN_W = 260;
+export const TITLE_START_BTN_H = 56;
+export const TITLE_START_BTN_RADIUS = 10;
+export const TITLE_START_BTN_FILL = 0xff7700;
+export const TITLE_START_BTN_STROKE = 0xff8800;
+export const TITLE_START_BTN_HOVER_FILL = 0xff8800;
+export const TITLE_START_BTN_HOVER_STROKE = 0xffaa33;
+export const TITLE_PREVIEW_HEAD_RADIUS = 12;
+export const TITLE_PREVIEW_HEAD_OFFSET_Y = 6;
+export const TITLE_PREVIEW_HAT_OFFSET_Y = 22;
+export const TITLE_CONTROLS_CARD_W = 340;
+export const TITLE_CONTROLS_CARD_H = 260;
+export const TITLE_CONTROLS_OVERLAY_DEPTH = 50;
+export const TITLE_CONTROLS_BACKDROP_ALPHA = 0.7;
+export const TITLE_CONTROLS_ROW_HEIGHT = 30;
+export const TITLE_CONTROLS_KEY_OFFSET_X = -140;
+export const TITLE_CONTROLS_DESC_OFFSET_X = 40;
+export const TITLE_CONTROLS_START_OFFSET_Y = 56;
+
+// -- Game Over Scene --
+export const GAMEOVER_BG_COLOR = 0x0a0a0a;
+export const GAMEOVER_OVERLAY_COLOR = 0x110000;
+export const GAMEOVER_OVERLAY_ALPHA = 0.6;
+export const GAMEOVER_TITLE_OFFSET_Y = -60;
+export const GAMEOVER_TITLE_FADE_DURATION = 800;
+export const GAMEOVER_SUBTITLE_FADE_DURATION = 600;
+export const GAMEOVER_SUBTITLE_DELAY = 500;
+export const GAMEOVER_PROMPT_OFFSET_Y = 80;
+export const GAMEOVER_PROMPT_FADE_DURATION = 500;
+export const GAMEOVER_PROMPT_DELAY = 1500;
+export const GAMEOVER_PROMPT_PULSE_ALPHA = 0.4;
+export const GAMEOVER_PROMPT_PULSE_DURATION = 800;
+export const GAMEOVER_INPUT_DELAY = 1500;
+
+// -- HUD --
+export const HUD_LEFT_X = 8;
+export const HUD_LEFT_W = 180;
+export const HUD_LEFT_H = 44;
+export const HUD_BG_ALPHA = 0.5;
+export const HUD_BORDER_ALPHA = 0.1;
+export const HUD_BORDER_RADIUS = 6;
+export const HUD_GLIDE_X = 18;
+export const HUD_GLIDE_Y = 16;
+export const HUD_RIGHT_W = 160;
+export const HUD_RIGHT_H = 52;
+export const HUD_LIVES_OFFSET_X = 18;
+export const HUD_LIVES_Y = 14;
+export const HUD_FRUIT_Y = 40;
+export const HUD_DEPTH = 99;
+
+// -- Fruit Popup --
+export const FRUIT_POPUP_OFFSET_Y = 30;
+export const FRUIT_POPUP_RISE = 60;
+export const FRUIT_POPUP_DURATION = 800;
+
+// -- Player Visual --
+export const PLAYER_HEAD_RADIUS = 6;
+export const PLAYER_HEAD_OFFSET_Y = 4;
+export const PLAYER_FOOT_SHADOW_OFFSET_Y = 2;
+export const PLAYER_FOOT_SHADOW_WIDTH_EXTRA = 4;
+export const PLAYER_FOOT_SHADOW_HEIGHT = 6;
+export const PLAYER_HAT_OFFSET_Y = 16;
+export const PLAYER_OUTLINE_ALPHA = 0.3;
+export const PLAYER_OUTLINE_EXTRA = 2;
+export const PLAYER_BOB_SPEED = 0.003;
+export const PLAYER_BOB_AMPLITUDE = 1.5;
+export const PLAYER_INVULNERABLE_FLASH_SPEED = 0.01;
+export const PLAYER_INVULNERABLE_DIM_ALPHA = 0.3;
+export const PLAYER_COLLISION_INSET = 2;
+
+// -- NPC Visual --
+export const NPC_EYE_OFFSET_X = 2;
+export const NPC_EYE_RADIUS = 1;
+export const NPC_EYE_COLOR = 0x000000;
+export const NPC_CONTAINER_DEPTH = 10;
+export const NPC_DIALOGUE_LINE_COUNT = 3;
+export const NPC_BUBBLE_CORNER_RADIUS = 6;
+export const NPC_BUBBLE_BG_COLOR = 0x000000;
+export const NPC_BUBBLE_DEPTH = 20;
+export const NPC_BUBBLE_FALLBACK_HEIGHT = 30;
+
+// -- Lava Visual --
+export const LAVA_STRIPE_COUNT = 20;
+export const LAVA_SURFACE_HEIGHT = 4;
+export const LAVA_SURFACE_STEP = 8;
+export const LAVA_SURFACE_WAVE_AMP = 3;
+export const LAVA_SURFACE_COLOR = 0xffaa00;
+export const LAVA_SURFACE_ALPHA = 0.6;
+export const LAVA_STRIPE_ALPHA_BASE = 0.3;
+export const LAVA_STRIPE_ALPHA_RANGE = 0.3;
+export const LAVA_STRIPE_WIDTH_RATIO = 0.6;
+export const LAVA_GLOW_STEPS = 8;
+
+// -- Day/Night Visual --
+export const DAY_NIGHT_VISION_EDGE_STEPS = 8;
+export const DAY_NIGHT_VISION_EDGE_WIDTH = 10;
+export const DAY_NIGHT_OVERLAY_MAX_ALPHA = 0.85;
+
+// -- Cloud Visual --
+export const CLOUD_CIRCLE_COUNT_BASE = 2;
+export const CLOUD_CIRCLE_COUNT_RANGE = 2;
+export const CLOUD_CIRCLE_SPACING = 30;
+export const CLOUD_CIRCLE_JITTER_X = 20;
+export const CLOUD_CIRCLE_JITTER_Y = 10;
+export const CLOUD_ELLIPSE_WIDTH_BASE = 50;
+export const CLOUD_ELLIPSE_WIDTH_RANGE = 40;
+export const CLOUD_ELLIPSE_HEIGHT_BASE = 20;
+export const CLOUD_ELLIPSE_HEIGHT_RANGE = 15;
+export const CLOUD_ALPHA_JITTER = 0.05;
+export const CLOUD_DEPTH = -10;
+export const CLOUD_WRAP_MARGIN = 100;
+
+// -- Inventory Visual --
+export const INVENTORY_BG_COLOR = 0x111122;
+export const INVENTORY_BG_ALPHA = 0.85;
+export const INVENTORY_BG_PADDING_X = 24;
+export const INVENTORY_BG_PADDING_Y = 8;
+export const INVENTORY_BG_RADIUS = 8;
+export const INVENTORY_BORDER_ALPHA = 0.15;
+export const INVENTORY_SLOT_SELECTED_BG = 0x444466;
+export const INVENTORY_SLOT_BG = 0x222233;
+export const INVENTORY_SLOT_SELECTED_BORDER_WIDTH = 3;
+export const INVENTORY_SLOT_BORDER_WIDTH = 1;
+export const INVENTORY_SLOT_BORDER_COLOR = 0x555566;
+export const INVENTORY_SELECTED_SCALE = 1.05;
+export const INVENTORY_PREVIEW_OFFSET_Y = 6;
+export const INVENTORY_COUNT_OFFSET = 5;
+export const INVENTORY_COUNT_SHADOW_OFFSET = 1;
+export const INVENTORY_COUNT_SHADOW_ALPHA = 0.5;
+export const INVENTORY_BOTTOM_MARGIN = 10;
+
+// -- Goal Beacon Visual --
+export const GOAL_BEACON_GLOW_STEPS = 10;
+export const GOAL_BEACON_GLOW_ALPHA = 0.15;
+export const GOAL_BEACON_BEAM_ALPHA = 0.08;
+export const GOAL_BEACON_PULSE_ALPHA = 0.15;
+export const GOAL_BEACON_PULSE_SCALE_X = 1.2;
+export const GOAL_BEACON_PULSE_DURATION = 2000;
+
+// -- Ambient Particle Visual --
+export const AMBIENT_PARTICLE_DEPTH = -5;
+export const AMBIENT_PARTICLE_COLOR_CHANCE = 0.5;
+export const AMBIENT_PARTICLE_ALT_COLOR = 0xaaddff;
+
+// -- Sky Gradient Visual --
+export const SKY_GRADIENT_DEPTH = -20;
+
+// -- Block Interaction Visual --
+export const BLOCK_BREAK_OVERLAY_ALPHA = 0.3;
+export const BLOCK_BREAK_OVERLAY_COLOR = 0xffffff;
+export const BLOCK_BREAK_PROGRESS_ALPHA_RANGE = 0.4;
+
+// -- World Renderer Visual --
+export const BLOCK_OUTLINE_ALPHA = 0.2;

@@ -1,4 +1,9 @@
 import {
+	type GameSettings,
+	loadSettings,
+	saveSettings,
+} from "../audio/settings";
+import {
 	CHARACTER_COLORS,
 	FACE_TYPES,
 	HAT_TYPES,
@@ -6,6 +11,83 @@ import {
 	PLAYER_HEIGHT,
 	PLAYER_WIDTH,
 	SKIN_COLORS,
+	TITLE_BG_COLOR_BOTTOM,
+	TITLE_BG_COLOR_TOP,
+	TITLE_CELL_BG,
+	TITLE_CELL_BG_HOVER,
+	TITLE_CELL_GAP,
+	TITLE_CELL_SELECTED_BORDER,
+	TITLE_CELL_SIZE,
+	TITLE_CELL_UNSELECTED_BORDER,
+	TITLE_CHAR_GLOW_ALPHA,
+	TITLE_CHAR_GLOW_COLOR,
+	TITLE_CHAR_GLOW_RADIUS,
+	TITLE_CHAR_OFFSET_Y,
+	TITLE_CONTROLS_BACKDROP_ALPHA,
+	TITLE_CONTROLS_CARD_H,
+	TITLE_CONTROLS_CARD_W,
+	TITLE_CONTROLS_DESC_OFFSET_X,
+	TITLE_CONTROLS_KEY_OFFSET_X,
+	TITLE_CONTROLS_OVERLAY_DEPTH,
+	TITLE_CONTROLS_ROW_HEIGHT,
+	TITLE_CONTROLS_START_OFFSET_Y,
+	TITLE_DICE_OFFSET_Y,
+	TITLE_GLOW_ALPHA,
+	TITLE_IDLE_BOUNCE_DURATION,
+	TITLE_IDLE_BOUNCE_Y,
+	TITLE_LEFT_PANEL_OFFSET_X,
+	TITLE_LEFT_PANEL_W,
+	TITLE_NAME_OFFSET_Y,
+	TITLE_PANEL_ALPHA,
+	TITLE_PANEL_BG,
+	TITLE_PANEL_BORDER,
+	TITLE_PANEL_H,
+	TITLE_PANEL_INNER_GLOW_ALPHA,
+	TITLE_PANEL_INNER_GLOW_COLOR,
+	TITLE_PANEL_RADIUS,
+	TITLE_PANEL_TOP,
+	TITLE_PARTICLE_ALPHA_BASE,
+	TITLE_PARTICLE_ALPHA_RANGE,
+	TITLE_PARTICLE_COUNT,
+	TITLE_PARTICLE_DRIFT_BASE,
+	TITLE_PARTICLE_DRIFT_RANGE,
+	TITLE_PARTICLE_DURATION_BASE,
+	TITLE_PARTICLE_DURATION_RANGE,
+	TITLE_PARTICLE_RADIUS,
+	TITLE_PLATFORM_OFFSET_Y,
+	TITLE_PREVIEW_HAT_OFFSET_Y,
+	TITLE_PREVIEW_HEAD_OFFSET_Y,
+	TITLE_PREVIEW_HEAD_RADIUS,
+	TITLE_PREVIEW_SCALE,
+	TITLE_RIGHT_PANEL_OFFSET_X,
+	TITLE_RIGHT_PANEL_W,
+	TITLE_SHADOW_ALPHA,
+	TITLE_SHADOW_OFFSET,
+	TITLE_START_BTN_FILL,
+	TITLE_START_BTN_H,
+	TITLE_START_BTN_HOVER_FILL,
+	TITLE_START_BTN_HOVER_STROKE,
+	TITLE_START_BTN_OFFSET_Y,
+	TITLE_START_BTN_RADIUS,
+	TITLE_START_BTN_STROKE,
+	TITLE_START_BTN_W,
+	TITLE_START_GLOW_ALPHA,
+	TITLE_START_GLOW_COLOR,
+	TITLE_START_GLOW_H,
+	TITLE_START_GLOW_W,
+	TITLE_SUBTITLE_Y,
+	TITLE_TAB_ACTIVE_ALPHA,
+	TITLE_TAB_ACTIVE_COLOR,
+	TITLE_TAB_CONTENT_OFFSET_Y,
+	TITLE_TAB_CONTENT_PADDING,
+	TITLE_TAB_GAP,
+	TITLE_TAB_HOVER_ALPHA,
+	TITLE_TAB_HOVER_COLOR,
+	TITLE_TAB_INACTIVE_ALPHA,
+	TITLE_TAB_INACTIVE_COLOR,
+	TITLE_TAB_INDICATOR_HEIGHT,
+	TITLE_TAB_OFFSET_Y,
+	TITLE_Y,
 	TRAIL_TYPES,
 } from "../config";
 import { drawFace } from "../player/face-renderer";
@@ -120,20 +202,6 @@ const SILLY_SECOND = [
 	"Gappington",
 ];
 
-// -- Style Constants --
-
-const BG_COLOR_TOP = 0x0a0a2e;
-const BG_COLOR_BOTTOM = 0x1a1a3e;
-const PANEL_BG = 0x111133;
-const PANEL_BORDER = 0x444477;
-const PANEL_ALPHA = 0.85;
-const CELL_BG = 0x1a1a44;
-const CELL_BG_HOVER = 0x2a2a55;
-const CELL_SELECTED_BORDER = 0xffdd44;
-const CELL_UNSELECTED_BORDER = 0x444466;
-const CELL_SIZE = 48;
-const CELL_GAP = 10;
-const PREVIEW_SCALE = 3;
 const TAB_LABELS = ["Outfit", "Skin", "Hat", "Face", "Trail"] as const;
 
 type TabName = (typeof TAB_LABELS)[number];
@@ -161,6 +229,7 @@ export class TitleScene extends Phaser.Scene {
 	// Controls overlay
 	private controlsOverlay!: Phaser.GameObjects.Container;
 	private controlsVisible = false;
+	private settings!: GameSettings;
 
 	// Start button glow
 	private startGlow!: Phaser.GameObjects.Rectangle;
@@ -183,12 +252,13 @@ export class TitleScene extends Phaser.Scene {
 
 		// -- Background gradient --
 		const bgGfx = this.add.graphics();
-		const steps = 20;
+		const bgTop = Phaser.Display.Color.IntegerToColor(TITLE_BG_COLOR_TOP);
+		const bgBottom = Phaser.Display.Color.IntegerToColor(TITLE_BG_COLOR_BOTTOM);
+		const steps = TITLE_PARTICLE_COUNT;
 		for (let i = 0; i < steps; i++) {
-			const _t = i / steps;
 			const color = Phaser.Display.Color.Interpolate.ColorWithColor(
-				Phaser.Display.Color.IntegerToColor(BG_COLOR_TOP),
-				Phaser.Display.Color.IntegerToColor(BG_COLOR_BOTTOM),
+				bgTop,
+				bgBottom,
 				steps,
 				i,
 			);
@@ -197,39 +267,49 @@ export class TitleScene extends Phaser.Scene {
 		}
 
 		// -- Floating particles (ambient) --
-		for (let i = 0; i < 15; i++) {
+		for (let i = 0; i < TITLE_PARTICLE_COUNT; i++) {
 			const px = Math.random() * width;
 			const py = Math.random() * height;
 			const dot = this.add.circle(
 				px,
 				py,
-				1.5,
+				TITLE_PARTICLE_RADIUS,
 				0xffffff,
-				0.15 + Math.random() * 0.2,
+				TITLE_PARTICLE_ALPHA_BASE + Math.random() * TITLE_PARTICLE_ALPHA_RANGE,
 			);
 			this.tweens.add({
 				targets: dot,
-				y: py - 30 - Math.random() * 40,
+				y:
+					py -
+					TITLE_PARTICLE_DRIFT_BASE -
+					Math.random() * TITLE_PARTICLE_DRIFT_RANGE,
 				alpha: 0,
-				duration: 3000 + Math.random() * 4000,
+				duration:
+					TITLE_PARTICLE_DURATION_BASE +
+					Math.random() * TITLE_PARTICLE_DURATION_RANGE,
 				repeat: -1,
 				yoyo: true,
-				delay: Math.random() * 3000,
+				delay: Math.random() * TITLE_PARTICLE_DURATION_BASE,
 			});
 		}
 
 		// -- Title --
-		// Text shadow (drawn first, offset by 2px)
+		// Text shadow (drawn first, offset)
 		this.add
-			.text(cx + 2, 38, "DRIFT LANDS", {
-				fontSize: "52px",
-				color: "#000000",
-				fontStyle: "bold",
-			})
+			.text(
+				cx + TITLE_SHADOW_OFFSET,
+				TITLE_Y + TITLE_SHADOW_OFFSET,
+				"DRIFT LANDS",
+				{
+					fontSize: "52px",
+					color: "#000000",
+					fontStyle: "bold",
+				},
+			)
 			.setOrigin(0.5)
-			.setAlpha(0.5);
-		const _title = this.add
-			.text(cx, 36, "DRIFT LANDS", {
+			.setAlpha(TITLE_SHADOW_ALPHA);
+		this.add
+			.text(cx, TITLE_Y, "DRIFT LANDS", {
 				fontSize: "52px",
 				color: "#ffffff",
 				fontStyle: "bold",
@@ -237,58 +317,33 @@ export class TitleScene extends Phaser.Scene {
 			.setOrigin(0.5);
 		// Subtle glow via duplicate
 		const titleGlow = this.add
-			.text(cx, 36, "DRIFT LANDS", {
+			.text(cx, TITLE_Y, "DRIFT LANDS", {
 				fontSize: "52px",
 				color: "#4488cc",
 				fontStyle: "bold",
 			})
 			.setOrigin(0.5)
-			.setAlpha(0.3);
+			.setAlpha(TITLE_GLOW_ALPHA);
 		titleGlow.setBlendMode(Phaser.BlendModes.ADD);
 
 		this.add
-			.text(cx, 80, "Reach the sky before the lava rises", {
+			.text(cx, TITLE_SUBTITLE_Y, "Reach the sky before the lava rises", {
 				fontSize: "14px",
 				color: "#99ddff",
 			})
 			.setOrigin(0.5);
 
 		// -- Left panel: Character preview --
-		const leftPanelX = cx - 200;
-		const panelTop = 120;
-		const panelW = 180;
-		const panelH = 280;
+		const leftPanelX = cx + TITLE_LEFT_PANEL_OFFSET_X;
+		const panelTop = TITLE_PANEL_TOP;
+		const panelW = TITLE_LEFT_PANEL_W;
+		const panelH = TITLE_PANEL_H;
 
 		// Panel background
-		const leftBg = this.add.graphics();
-		leftBg.fillStyle(PANEL_BG, PANEL_ALPHA);
-		leftBg.lineStyle(1, PANEL_BORDER);
-		leftBg.fillRoundedRect(
-			leftPanelX - panelW / 2,
-			panelTop,
-			panelW,
-			panelH,
-			16,
-		);
-		leftBg.strokeRoundedRect(
-			leftPanelX - panelW / 2,
-			panelTop,
-			panelW,
-			panelH,
-			16,
-		);
-		// Subtle inner glow
-		leftBg.fillStyle(0x223366, 0.3);
-		leftBg.fillRoundedRect(
-			leftPanelX - panelW / 2 + 4,
-			panelTop + 4,
-			panelW - 8,
-			panelH - 8,
-			14,
-		);
+		this.drawPanel(leftPanelX - panelW / 2, panelTop, panelW, panelH);
 
 		// Mini floating island platform
-		const platformY = panelTop + 160;
+		const platformY = panelTop + TITLE_PLATFORM_OFFSET_Y;
 		const platform = this.add.graphics();
 		platform.fillStyle(0x4a7c2e);
 		platform.fillRoundedRect(leftPanelX - 40, platformY, 80, 12, 4);
@@ -296,43 +351,47 @@ export class TitleScene extends Phaser.Scene {
 		platform.fillRoundedRect(leftPanelX - 35, platformY + 10, 70, 10, 4);
 
 		// Character preview
-		const charY = platformY - 30;
+		const charY = platformY - TITLE_CHAR_OFFSET_Y;
 		this.previewBody = this.add.rectangle(
 			leftPanelX,
 			charY,
-			PLAYER_WIDTH * PREVIEW_SCALE,
-			PLAYER_HEIGHT * PREVIEW_SCALE,
+			PLAYER_WIDTH * TITLE_PREVIEW_SCALE,
+			PLAYER_HEIGHT * TITLE_PREVIEW_SCALE,
 			CHARACTER_COLORS[this.selected.body],
 		);
+		const headY = charY - PLAYER_HEIGHT * 1.2 - TITLE_PREVIEW_HEAD_OFFSET_Y;
 		this.previewHead = this.add.circle(
 			leftPanelX,
-			charY - PLAYER_HEIGHT * 1.2 - 6,
-			12,
+			headY,
+			TITLE_PREVIEW_HEAD_RADIUS,
 			SKIN_COLORS[this.selected.skin],
 		);
 		this.previewHat = this.add
-			.text(leftPanelX, charY - PLAYER_HEIGHT * 1.2 - 22, "", {
-				fontSize: "24px",
-			})
+			.text(
+				leftPanelX,
+				charY - PLAYER_HEIGHT * 1.2 - TITLE_PREVIEW_HAT_OFFSET_Y,
+				"",
+				{ fontSize: "24px" },
+			)
 			.setOrigin(0.5);
 		this.previewFaceGfx = this.add.graphics();
-		this.previewFaceGfx.setPosition(
-			leftPanelX,
-			charY - PLAYER_HEIGHT * 1.2 - 6,
-		);
+		this.previewFaceGfx.setPosition(leftPanelX, headY);
 		this.previewTrail = this.add
-			.text(leftPanelX, charY + PLAYER_HEIGHT * 1.2 + 6, "", {
-				fontSize: "12px",
-			})
+			.text(
+				leftPanelX,
+				charY + PLAYER_HEIGHT * 1.2 + TITLE_PREVIEW_HEAD_OFFSET_Y,
+				"",
+				{ fontSize: "12px" },
+			)
 			.setOrigin(0.5);
 
 		// Soft circular glow behind character
 		const charGlow = this.add.circle(
 			leftPanelX,
 			charY - 10,
-			60,
-			0x4488cc,
-			0.15,
+			TITLE_CHAR_GLOW_RADIUS,
+			TITLE_CHAR_GLOW_COLOR,
+			TITLE_CHAR_GLOW_ALPHA,
 		);
 
 		// Group for idle animation
@@ -348,8 +407,8 @@ export class TitleScene extends Phaser.Scene {
 		// Idle bounce
 		this.tweens.add({
 			targets: this.previewContainer,
-			y: -8,
-			duration: 1200,
+			y: TITLE_IDLE_BOUNCE_Y,
+			duration: TITLE_IDLE_BOUNCE_DURATION,
 			yoyo: true,
 			repeat: -1,
 			ease: "Sine.easeInOut",
@@ -357,7 +416,7 @@ export class TitleScene extends Phaser.Scene {
 
 		// Name label
 		this.nameLabel = this.add
-			.text(leftPanelX, panelTop + panelH - 40, "", {
+			.text(leftPanelX, panelTop + panelH - TITLE_NAME_OFFSET_Y, "", {
 				fontSize: "14px",
 				color: "#ffee66",
 				fontStyle: "italic",
@@ -366,12 +425,17 @@ export class TitleScene extends Phaser.Scene {
 
 		// Randomize button under name
 		const diceBtn = this.add
-			.text(leftPanelX, panelTop + panelH - 20, "\u{1f3b2} Randomize", {
-				fontSize: "14px",
-				color: "#aaaaaa",
-				backgroundColor: "#222255",
-				padding: { x: 10, y: 4 },
-			})
+			.text(
+				leftPanelX,
+				panelTop + panelH - TITLE_DICE_OFFSET_Y,
+				"\u{1f3b2} Randomize",
+				{
+					fontSize: "14px",
+					color: "#aaaaaa",
+					backgroundColor: "#222255",
+					padding: { x: 10, y: 4 },
+				},
+			)
 			.setOrigin(0.5)
 			.setInteractive({ useHandCursor: true });
 		diceBtn.on("pointerover", () => diceBtn.setColor("#ffdd44"));
@@ -394,41 +458,21 @@ export class TitleScene extends Phaser.Scene {
 		});
 
 		// -- Right panel: Customization --
-		const rightPanelX = cx + 120;
-		const rightPanelW = 320;
+		const rightPanelX = cx + TITLE_RIGHT_PANEL_OFFSET_X;
+		const rightPanelW = TITLE_RIGHT_PANEL_W;
 
-		const rightBg = this.add.graphics();
-		rightBg.fillStyle(PANEL_BG, PANEL_ALPHA);
-		rightBg.lineStyle(1, PANEL_BORDER);
-		rightBg.fillRoundedRect(
+		this.drawPanel(
 			rightPanelX - rightPanelW / 2,
 			panelTop,
 			rightPanelW,
 			panelH,
-			16,
-		);
-		rightBg.strokeRoundedRect(
-			rightPanelX - rightPanelW / 2,
-			panelTop,
-			rightPanelW,
-			panelH,
-			16,
-		);
-		// Subtle inner glow
-		rightBg.fillStyle(0x223366, 0.3);
-		rightBg.fillRoundedRect(
-			rightPanelX - rightPanelW / 2 + 4,
-			panelTop + 4,
-			rightPanelW - 8,
-			panelH - 8,
-			14,
 		);
 
 		// Tab bar
-		const tabY = panelTop + 20;
+		const tabY = panelTop + TITLE_TAB_OFFSET_Y;
 		this.tabButtons = [];
 		this.tabIndicators = [];
-		const tabGap = 2;
+		const tabGap = TITLE_TAB_GAP;
 		const tabWidth =
 			(rightPanelW - tabGap * (TAB_LABELS.length - 1)) / TAB_LABELS.length;
 
@@ -444,7 +488,7 @@ export class TitleScene extends Phaser.Scene {
 				tabY + 12,
 				tabWidth - 8,
 				4,
-				CELL_SELECTED_BORDER,
+				TITLE_CELL_SELECTED_BORDER,
 			);
 			indicator.setVisible(isActive);
 			this.tabIndicators.push(indicator);
@@ -453,28 +497,36 @@ export class TitleScene extends Phaser.Scene {
 			const tabBtn = this.add
 				.text(tabX, tabY, tabName, {
 					fontSize: "13px",
-					color: isActive ? "#ffdd44" : "#888899",
+					color: isActive ? TITLE_TAB_ACTIVE_COLOR : TITLE_TAB_INACTIVE_COLOR,
 					fontStyle: isActive ? "bold" : "",
 				})
 				.setOrigin(0.5)
-				.setAlpha(isActive ? 1 : 0.6)
+				.setAlpha(isActive ? TITLE_TAB_ACTIVE_ALPHA : TITLE_TAB_INACTIVE_ALPHA)
 				.setInteractive({ useHandCursor: true });
 
 			tabBtn.on("pointerdown", () => {
 				this.activeTab = tabName;
-				this.renderTabContent(rightPanelX, panelTop + 42, rightPanelW);
+				this.renderTabContent(
+					rightPanelX,
+					panelTop + TITLE_TAB_CONTENT_OFFSET_Y,
+					rightPanelW,
+				);
 				this.updateTabBar();
 			});
 			tabBtn.on("pointerover", () => {
 				if (tabName !== this.activeTab) {
-					tabBtn.setColor("#bbbbcc");
-					tabBtn.setAlpha(0.85);
+					tabBtn.setColor(TITLE_TAB_HOVER_COLOR);
+					tabBtn.setAlpha(TITLE_TAB_HOVER_ALPHA);
 				}
 			});
 			tabBtn.on("pointerout", () => {
 				const active = tabName === this.activeTab;
-				tabBtn.setColor(active ? "#ffdd44" : "#888899");
-				tabBtn.setAlpha(active ? 1 : 0.6);
+				tabBtn.setColor(
+					active ? TITLE_TAB_ACTIVE_COLOR : TITLE_TAB_INACTIVE_COLOR,
+				);
+				tabBtn.setAlpha(
+					active ? TITLE_TAB_ACTIVE_ALPHA : TITLE_TAB_INACTIVE_ALPHA,
+				);
 			});
 
 			this.tabButtons.push(tabBtn);
@@ -482,13 +534,24 @@ export class TitleScene extends Phaser.Scene {
 
 		// Tab content container
 		this.tabContainer = this.add.container(0, 0);
-		this.renderTabContent(rightPanelX, panelTop + 42, rightPanelW);
+		this.renderTabContent(
+			rightPanelX,
+			panelTop + TITLE_TAB_CONTENT_OFFSET_Y,
+			rightPanelW,
+		);
 
 		// -- Bottom: Start button --
-		const bottomY = panelTop + panelH + 50;
+		const bottomY = panelTop + panelH + TITLE_START_BTN_OFFSET_Y;
 
 		// Glow behind button
-		this.startGlow = this.add.rectangle(cx, bottomY, 280, 64, 0xff8800, 0.2);
+		this.startGlow = this.add.rectangle(
+			cx,
+			bottomY,
+			TITLE_START_GLOW_W,
+			TITLE_START_GLOW_H,
+			TITLE_START_GLOW_COLOR,
+			TITLE_START_GLOW_ALPHA,
+		);
 		this.startGlow.setBlendMode(Phaser.BlendModes.ADD);
 		this.tweens.add({
 			targets: this.startGlow,
@@ -502,8 +565,8 @@ export class TitleScene extends Phaser.Scene {
 		});
 
 		// Start button — clickable zone covers the full button area
-		const btnW = 260;
-		const btnH = 56;
+		const btnW = TITLE_START_BTN_W;
+		const btnH = TITLE_START_BTN_H;
 		const startBg = this.add.graphics();
 
 		const drawStartBg = (fill: number, stroke: number) => {
@@ -514,7 +577,7 @@ export class TitleScene extends Phaser.Scene {
 				bottomY - btnH / 2,
 				btnW,
 				btnH,
-				10,
+				TITLE_START_BTN_RADIUS,
 			);
 			startBg.lineStyle(2, stroke);
 			startBg.strokeRoundedRect(
@@ -522,10 +585,10 @@ export class TitleScene extends Phaser.Scene {
 				bottomY - btnH / 2,
 				btnW,
 				btnH,
-				10,
+				TITLE_START_BTN_RADIUS,
 			);
 		};
-		drawStartBg(0xff7700, 0xff8800);
+		drawStartBg(TITLE_START_BTN_FILL, TITLE_START_BTN_STROKE);
 
 		const startLabel = this.add
 			.text(cx, bottomY, "\u25b6  PLAY", {
@@ -557,11 +620,11 @@ export class TitleScene extends Phaser.Scene {
 
 		startHitZone.on("pointerover", () => {
 			startLabel.setScale(1.08);
-			drawStartBg(0xff8800, 0xffaa33);
+			drawStartBg(TITLE_START_BTN_HOVER_FILL, TITLE_START_BTN_HOVER_STROKE);
 		});
 		startHitZone.on("pointerout", () => {
 			startLabel.setScale(1);
-			drawStartBg(0xff7700, 0xff8800);
+			drawStartBg(TITLE_START_BTN_FILL, TITLE_START_BTN_STROKE);
 		});
 		startHitZone.on("pointerdown", startGame);
 
@@ -629,10 +692,13 @@ export class TitleScene extends Phaser.Scene {
 		controlsBtn.on("pointerout", () => controlsBtn.setColor("#666688"));
 		controlsBtn.on("pointerdown", () => this.toggleControls());
 
+		// Audio settings toggles (bottom-left)
+		this.buildAudioToggles(height);
+
 		// Controls overlay (hidden)
 		this.controlsOverlay = this.add.container(0, 0);
 		this.controlsOverlay.setVisible(false);
-		this.controlsOverlay.setDepth(50);
+		this.controlsOverlay.setDepth(TITLE_CONTROLS_OVERLAY_DEPTH);
 		this.buildControlsOverlay();
 
 		this.updatePreview();
@@ -647,10 +713,10 @@ export class TitleScene extends Phaser.Scene {
 	): void => {
 		this.tabContainer.removeAll(true);
 
-		const contentX = cx - panelW / 2 + 16;
-		const contentW = panelW - 32;
+		const contentX = cx - panelW / 2 + TITLE_TAB_CONTENT_PADDING;
+		const contentW = panelW - TITLE_TAB_CONTENT_PADDING * 2;
 		const cellsPerRow = Math.floor(
-			(contentW + CELL_GAP) / (CELL_SIZE + CELL_GAP),
+			(contentW + TITLE_CELL_GAP) / (TITLE_CELL_SIZE + TITLE_CELL_GAP),
 		);
 
 		switch (this.activeTab) {
@@ -736,21 +802,23 @@ export class TitleScene extends Phaser.Scene {
 		for (let i = 0; i < colors.length; i++) {
 			const col = i % perRow;
 			const row = Math.floor(i / perRow);
-			const cellX = x + col * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2;
-			const cellY = y + row * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2;
+			const cellX =
+				x + col * (TITLE_CELL_SIZE + TITLE_CELL_GAP) + TITLE_CELL_SIZE / 2;
+			const cellY =
+				y + row * (TITLE_CELL_SIZE + TITLE_CELL_GAP) + TITLE_CELL_SIZE / 2;
 			const isSelected = i === selectedIdx;
 
 			// Cell background
 			const cell = this.add.rectangle(
 				cellX,
 				cellY,
-				CELL_SIZE,
-				CELL_SIZE,
-				CELL_BG,
+				TITLE_CELL_SIZE,
+				TITLE_CELL_SIZE,
+				TITLE_CELL_BG,
 			);
 			cell.setStrokeStyle(
 				isSelected ? 3 : 2,
-				isSelected ? CELL_SELECTED_BORDER : CELL_UNSELECTED_BORDER,
+				isSelected ? TITLE_CELL_SELECTED_BORDER : TITLE_CELL_UNSELECTED_BORDER,
 			);
 			cell.setInteractive({ useHandCursor: true });
 			this.tabContainer.add(cell);
@@ -759,8 +827,8 @@ export class TitleScene extends Phaser.Scene {
 			const swatch = this.add.rectangle(
 				cellX,
 				cellY,
-				CELL_SIZE - 10,
-				CELL_SIZE - 10,
+				TITLE_CELL_SIZE - 10,
+				TITLE_CELL_SIZE - 10,
 				colors[i],
 			);
 			this.tabContainer.add(swatch);
@@ -768,13 +836,13 @@ export class TitleScene extends Phaser.Scene {
 			// Hover
 			cell.on("pointerover", () => {
 				if (i !== selectedIdx) {
-					cell.setFillStyle(CELL_BG_HOVER);
+					cell.setFillStyle(TITLE_CELL_BG_HOVER);
 					cell.setScale(1.05);
 					swatch.setScale(1.05);
 				}
 			});
 			cell.on("pointerout", () => {
-				cell.setFillStyle(CELL_BG);
+				cell.setFillStyle(TITLE_CELL_BG);
 				cell.setScale(1);
 				swatch.setScale(1);
 			});
@@ -804,21 +872,23 @@ export class TitleScene extends Phaser.Scene {
 		for (let i = 0; i < types.length; i++) {
 			const col = i % perRow;
 			const row = Math.floor(i / perRow);
-			const cellX = x + col * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2;
-			const cellY = y + row * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2;
+			const cellX =
+				x + col * (TITLE_CELL_SIZE + TITLE_CELL_GAP) + TITLE_CELL_SIZE / 2;
+			const cellY =
+				y + row * (TITLE_CELL_SIZE + TITLE_CELL_GAP) + TITLE_CELL_SIZE / 2;
 			const isSelected = i === selectedIdx;
 			const key = types[i] as T[number];
 
 			const cell = this.add.rectangle(
 				cellX,
 				cellY,
-				CELL_SIZE,
-				CELL_SIZE,
-				CELL_BG,
+				TITLE_CELL_SIZE,
+				TITLE_CELL_SIZE,
+				TITLE_CELL_BG,
 			);
 			cell.setStrokeStyle(
 				isSelected ? 3 : 2,
-				isSelected ? CELL_SELECTED_BORDER : CELL_UNSELECTED_BORDER,
+				isSelected ? TITLE_CELL_SELECTED_BORDER : TITLE_CELL_UNSELECTED_BORDER,
 			);
 			cell.setInteractive({ useHandCursor: true });
 			this.tabContainer.add(cell);
@@ -830,13 +900,13 @@ export class TitleScene extends Phaser.Scene {
 
 			cell.on("pointerover", () => {
 				if (i !== selectedIdx) {
-					cell.setFillStyle(CELL_BG_HOVER);
+					cell.setFillStyle(TITLE_CELL_BG_HOVER);
 					cell.setScale(1.05);
 					emoji.setScale(1.05);
 				}
 			});
 			cell.on("pointerout", () => {
-				cell.setFillStyle(CELL_BG);
+				cell.setFillStyle(TITLE_CELL_BG);
 				cell.setScale(1);
 				emoji.setScale(1);
 			});
@@ -867,9 +937,13 @@ export class TitleScene extends Phaser.Scene {
 	private updateTabBar = (): void => {
 		for (let i = 0; i < TAB_LABELS.length; i++) {
 			const isActive = TAB_LABELS[i] === this.activeTab;
-			this.tabButtons[i].setColor(isActive ? "#ffdd44" : "#888899");
+			this.tabButtons[i].setColor(
+				isActive ? TITLE_TAB_ACTIVE_COLOR : TITLE_TAB_INACTIVE_COLOR,
+			);
 			this.tabButtons[i].setFontStyle(isActive ? "bold" : "");
-			this.tabButtons[i].setAlpha(isActive ? 1 : 0.6);
+			this.tabButtons[i].setAlpha(
+				isActive ? TITLE_TAB_ACTIVE_ALPHA : TITLE_TAB_INACTIVE_ALPHA,
+			);
 			this.tabIndicators[i].setVisible(isActive);
 		}
 	};
@@ -883,19 +957,31 @@ export class TitleScene extends Phaser.Scene {
 
 		// Dimmed backdrop
 		const backdrop = this.add
-			.rectangle(cx, cy, width, height, 0x000000, 0.7)
+			.rectangle(cx, cy, width, height, 0x000000, TITLE_CONTROLS_BACKDROP_ALPHA)
 			.setInteractive();
 		backdrop.on("pointerdown", () => this.toggleControls());
 		this.controlsOverlay.add(backdrop);
 
 		// Card
-		const cardW = 340;
-		const cardH = 260;
+		const cardW = TITLE_CONTROLS_CARD_W;
+		const cardH = TITLE_CONTROLS_CARD_H;
 		const cardGfx = this.add.graphics();
-		cardGfx.fillStyle(PANEL_BG, 0.95);
-		cardGfx.lineStyle(1, PANEL_BORDER);
-		cardGfx.fillRoundedRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH, 16);
-		cardGfx.strokeRoundedRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH, 16);
+		cardGfx.fillStyle(TITLE_PANEL_BG, 0.95);
+		cardGfx.lineStyle(1, TITLE_PANEL_BORDER);
+		cardGfx.fillRoundedRect(
+			cx - cardW / 2,
+			cy - cardH / 2,
+			cardW,
+			cardH,
+			TITLE_PANEL_RADIUS,
+		);
+		cardGfx.strokeRoundedRect(
+			cx - cardW / 2,
+			cy - cardH / 2,
+			cardW,
+			cardH,
+			TITLE_PANEL_RADIUS,
+		);
 		this.controlsOverlay.add(cardGfx);
 
 		const headerText = this.add
@@ -916,22 +1002,32 @@ export class TitleScene extends Phaser.Scene {
 			["1-9 / Scroll Wheel", "Select inventory"],
 		];
 
-		const startY = cy - cardH / 2 + 56;
+		const startY = cy - cardH / 2 + TITLE_CONTROLS_START_OFFSET_Y;
 		for (let i = 0; i < controls.length; i++) {
 			const [key, desc] = controls[i];
 			const keyText = this.add
-				.text(cx - 140, startY + i * 30, key ?? "", {
-					fontSize: "13px",
-					color: "#ffdd44",
-				})
+				.text(
+					cx + TITLE_CONTROLS_KEY_OFFSET_X,
+					startY + i * TITLE_CONTROLS_ROW_HEIGHT,
+					key ?? "",
+					{
+						fontSize: "13px",
+						color: TITLE_TAB_ACTIVE_COLOR,
+					},
+				)
 				.setOrigin(0, 0.5);
 			this.controlsOverlay.add(keyText);
 
 			const descText = this.add
-				.text(cx + 40, startY + i * 30, desc ?? "", {
-					fontSize: "13px",
-					color: "#cccccc",
-				})
+				.text(
+					cx + TITLE_CONTROLS_DESC_OFFSET_X,
+					startY + i * TITLE_CONTROLS_ROW_HEIGHT,
+					desc ?? "",
+					{
+						fontSize: "13px",
+						color: "#cccccc",
+					},
+				)
 				.setOrigin(0, 0.5);
 			this.controlsOverlay.add(descText);
 		}
@@ -943,6 +1039,24 @@ export class TitleScene extends Phaser.Scene {
 			})
 			.setOrigin(0.5);
 		this.controlsOverlay.add(closeText);
+	};
+
+	private drawPanel = (x: number, y: number, w: number, h: number): void => {
+		const gfx = this.add.graphics();
+		gfx.fillStyle(TITLE_PANEL_BG, TITLE_PANEL_ALPHA);
+		gfx.lineStyle(1, TITLE_PANEL_BORDER);
+		gfx.fillRoundedRect(x, y, w, h, TITLE_PANEL_RADIUS);
+		gfx.strokeRoundedRect(x, y, w, h, TITLE_PANEL_RADIUS);
+		// Subtle inner glow
+		const inset = 4;
+		gfx.fillStyle(TITLE_PANEL_INNER_GLOW_COLOR, TITLE_PANEL_INNER_GLOW_ALPHA);
+		gfx.fillRoundedRect(
+			x + inset,
+			y + inset,
+			w - inset * 2,
+			h - inset * 2,
+			TITLE_PANEL_RADIUS - 2,
+		);
 	};
 
 	private toggleControls = (): void => {
@@ -988,10 +1102,59 @@ export class TitleScene extends Phaser.Scene {
 		// Re-render active tab to update selection highlights
 		const { width } = this.cameras.main;
 		const cx = width / 2;
-		const rightPanelX = cx + 120;
-		this.renderTabContent(rightPanelX, 162, 320);
+		const rightPanelX = cx + TITLE_RIGHT_PANEL_OFFSET_X;
+		this.renderTabContent(
+			rightPanelX,
+			TITLE_PANEL_TOP + TITLE_TAB_CONTENT_OFFSET_Y,
+			TITLE_RIGHT_PANEL_W,
+		);
 		this.updateTabBar();
 
 		saveConfig(this.selected);
+	};
+
+	private buildAudioToggles = (screenHeight: number): void => {
+		const x = 16;
+		const y = screenHeight - 16;
+
+		const createToggle = (
+			label: string,
+			enabled: boolean,
+			yOffset: number,
+			onToggle: (val: boolean) => void,
+		): void => {
+			const text = this.add
+				.text(
+					x,
+					y - yOffset,
+					`${enabled ? "\u{1f50a}" : "\u{1f507}"} ${label}: ${enabled ? "ON" : "OFF"}`,
+					{ fontSize: "12px", color: enabled ? "#88cc88" : "#888888" },
+				)
+				.setOrigin(0, 1)
+				.setInteractive({ useHandCursor: true });
+
+			text.on("pointerdown", () => {
+				const newVal = !enabled;
+				onToggle(newVal);
+				text.setText(
+					`${newVal ? "\u{1f50a}" : "\u{1f507}"} ${label}: ${newVal ? "ON" : "OFF"}`,
+				);
+				text.setColor(newVal ? "#88cc88" : "#888888");
+				enabled = newVal;
+			});
+			text.on("pointerover", () => text.setColor("#ffffff"));
+			text.on("pointerout", () =>
+				text.setColor(enabled ? "#88cc88" : "#888888"),
+			);
+		};
+
+		createToggle("Music", this.settings.musicEnabled, 22, (val) => {
+			this.settings.musicEnabled = val;
+			saveSettings(this.settings);
+		});
+		createToggle("SFX", this.settings.sfxEnabled, 0, (val) => {
+			this.settings.sfxEnabled = val;
+			saveSettings(this.settings);
+		});
 	};
 }
