@@ -3,7 +3,11 @@ import {
 	loadHighScores,
 	resetHighScores,
 } from "../audio/high-scores";
-import { type GameSettings, saveSettings } from "../audio/settings";
+import {
+	type GameSettings,
+	loadSettings,
+	saveSettings,
+} from "../audio/settings";
 import {
 	CHARACTER_COLORS,
 	COLORS,
@@ -255,6 +259,7 @@ export class TitleScene extends Phaser.Scene {
 
 		const saved = loadSavedConfig();
 		this.selected = { ...saved };
+		this.settings = loadSettings();
 
 		const { width, height } = this.cameras.main;
 		const cx = width / 2;
