@@ -72,13 +72,47 @@ export const ISLAND_FLAT_WIDE_HEIGHT_MIN = 3;
 export const ISLAND_FLAT_WIDE_HEIGHT_MAX = 5;
 export const ISLAND_OVERHANG_INDENT = 2;
 
-// -- Climb Path Generation --
+// -- Climb Path Generation (legacy) --
 export const CLIMB_BAND_HEIGHT = 9;
 export const CLIMB_BAND_MIN_ISLANDS = 1;
 export const CLIMB_BAND_MAX_ISLANDS = 2;
 export const CLIMB_HORIZONTAL_REACH = 15;
 export const CLIMB_TOP_SHRINK_RATIO = 0.6;
 export const CLIMB_TOP_BAND_THRESHOLD = 0.75;
+
+// -- Ascent Chain Generation --
+export const ASCENT_VERTICAL_GAP_MIN = 6;
+export const ASCENT_VERTICAL_GAP_MAX = 10;
+export const ASCENT_HORIZONTAL_REACH_MIN = 8;
+export const ASCENT_HORIZONTAL_REACH_MAX = 15;
+export const SIDE_ISLAND_CHANCE = 0.4;
+export const TRANSIT_ISLAND_WIDTH_MIN = 3;
+export const TRANSIT_ISLAND_WIDTH_MAX = 5;
+export const TRANSIT_ISLAND_HEIGHT_MIN = 2;
+export const TRANSIT_ISLAND_HEIGHT_MAX = 3;
+export const SAFE_ISLAND_WIDTH_MIN = 14;
+export const SAFE_ISLAND_WIDTH_MAX = 20;
+export const SAFE_ISLAND_HEIGHT_MIN = 5;
+export const SAFE_ISLAND_HEIGHT_MAX = 7;
+export const RESOURCE_ISLAND_WIDTH_MIN = 8;
+export const RESOURCE_ISLAND_WIDTH_MAX = 14;
+export const RESOURCE_ISLAND_HEIGHT_MIN = 4;
+export const RESOURCE_ISLAND_HEIGHT_MAX = 6;
+export const REWARD_ISLAND_WIDTH_MIN = 7;
+export const REWARD_ISLAND_WIDTH_MAX = 12;
+export const REWARD_ISLAND_HEIGHT_MIN = 3;
+export const REWARD_ISLAND_HEIGHT_MAX = 5;
+export const GOAL_ISLAND_WIDTH = 12;
+export const GOAL_ISLAND_HEIGHT = 5;
+export const STARTER_ZONE_RATIO = 0.2;
+export const MID_CLIMB_RATIO = 0.5;
+export const HIGH_CLIMB_RATIO = 0.3;
+export const STARTER_ISLAND_COUNT = 3;
+export const SAFE_ISLAND_INTERVAL = 4;
+export const RESOURCE_VISIBLE_INTERVAL = 3;
+export const SIDE_ISLAND_HORIZONTAL_OFFSET_MIN = 12;
+export const SIDE_ISLAND_HORIZONTAL_OFFSET_MAX = 20;
+export const SIDE_ISLAND_VERTICAL_JITTER = 3;
 
 // -- Island Edge Irregularity --
 export const ISLAND_EDGE_INDENT_CHANCE = 0.35;

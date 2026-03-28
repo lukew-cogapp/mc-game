@@ -1,5 +1,7 @@
 import {
 	COLORS,
+	PLATFORM_SHADOW_ALPHA,
+	PLATFORM_SHADOW_HEIGHT,
 	TILE_SIZE,
 	WATER_ALPHA,
 	WORLD_HEIGHT_TILES,
@@ -232,6 +234,13 @@ export const createWorldTextures = (scene: Phaser.Scene): void => {
 		gfx.generateTexture(key, TILE_SIZE, TILE_SIZE);
 		gfx.destroy();
 	}
+
+	// Create the platform shadow texture
+	const shadowGfx = scene.add.graphics();
+	shadowGfx.fillStyle(0x000000);
+	shadowGfx.fillRect(0, 0, TILE_SIZE, PLATFORM_SHADOW_HEIGHT);
+	shadowGfx.generateTexture("block_shadow", TILE_SIZE, PLATFORM_SHADOW_HEIGHT);
+	shadowGfx.destroy();
 };
 
 export const renderWorld = (
@@ -254,6 +263,18 @@ export const renderWorld = (
 			sprite.setData("gridY", y);
 			sprite.setData("blockType", blockType);
 			blockGroup.add(sprite);
+
+			// Add a small shadow below solid blocks that have air beneath them
+			const belowY = y + 1;
+			if (belowY < WORLD_HEIGHT_TILES && grid[belowY][x] === BlockType.Air) {
+				const shadow = scene.add.sprite(
+					x * TILE_SIZE + TILE_SIZE / 2,
+					(y + 1) * TILE_SIZE + PLATFORM_SHADOW_HEIGHT / 2,
+					"block_shadow",
+				);
+				shadow.setAlpha(PLATFORM_SHADOW_ALPHA);
+				blockGroup.add(shadow);
+			}
 		}
 	}
 

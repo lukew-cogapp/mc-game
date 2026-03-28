@@ -445,8 +445,12 @@ export const updatePlayer = (
 		player.invulnerableTimer = DEATH_INVULNERABLE_MS;
 	}
 
-	// Visual: flip based on direction
+	// Visual: flip based on direction + gentle idle bob when grounded
 	player.container.scaleX = player.facingRight ? 1 : -1;
+	if (player.isGrounded && Math.abs(player.velocityX) < 1) {
+		const bobOffset = Math.sin(Date.now() * 0.003) * 1.5;
+		player.container.y += bobOffset;
+	}
 
 	// Trail particles
 	if (player.trail !== "none" && TRAIL_EMOJI_MAP[player.trail]) {

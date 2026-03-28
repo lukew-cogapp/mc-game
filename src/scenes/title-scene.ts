@@ -131,9 +131,9 @@ const CELL_BG = 0x1a1a44;
 const CELL_BG_HOVER = 0x2a2a55;
 const CELL_SELECTED_BORDER = 0xffdd44;
 const CELL_UNSELECTED_BORDER = 0x444466;
-const CELL_SIZE = 44;
-const CELL_GAP = 8;
-const PREVIEW_SCALE = 5;
+const CELL_SIZE = 48;
+const CELL_GAP = 10;
+const PREVIEW_SCALE = 3;
 const TAB_LABELS = ["Outfit", "Skin", "Hat", "Face", "Trail"] as const;
 
 type TabName = (typeof TAB_LABELS)[number];
@@ -254,10 +254,10 @@ export class TitleScene extends Phaser.Scene {
 			.setOrigin(0.5);
 
 		// -- Left panel: Character preview --
-		const leftPanelX = cx - 170;
-		const panelTop = 110;
-		const panelW = 200;
-		const panelH = 320;
+		const leftPanelX = cx - 200;
+		const panelTop = 120;
+		const panelW = 180;
+		const panelH = 280;
 
 		// Panel background
 		const leftBg = this.add.graphics();
@@ -288,7 +288,7 @@ export class TitleScene extends Phaser.Scene {
 		);
 
 		// Mini floating island platform
-		const platformY = panelTop + 170;
+		const platformY = panelTop + 160;
 		const platform = this.add.graphics();
 		platform.fillStyle(0x4a7c2e);
 		platform.fillRoundedRect(leftPanelX - 40, platformY, 80, 12, 4);
@@ -306,19 +306,24 @@ export class TitleScene extends Phaser.Scene {
 		);
 		this.previewHead = this.add.circle(
 			leftPanelX,
-			charY - PLAYER_HEIGHT * 2 - 8,
-			20,
+			charY - PLAYER_HEIGHT * 1.2 - 6,
+			12,
 			SKIN_COLORS[this.selected.skin],
 		);
 		this.previewHat = this.add
-			.text(leftPanelX, charY - PLAYER_HEIGHT * 2 - 36, "", {
+			.text(leftPanelX, charY - PLAYER_HEIGHT * 1.2 - 22, "", {
 				fontSize: "24px",
 			})
 			.setOrigin(0.5);
 		this.previewFaceGfx = this.add.graphics();
-		this.previewFaceGfx.setPosition(leftPanelX, charY - PLAYER_HEIGHT * 2 - 8);
+		this.previewFaceGfx.setPosition(
+			leftPanelX,
+			charY - PLAYER_HEIGHT * 1.2 - 6,
+		);
 		this.previewTrail = this.add
-			.text(leftPanelX, charY + PLAYER_HEIGHT * 2 + 8, "", { fontSize: "16px" })
+			.text(leftPanelX, charY + PLAYER_HEIGHT * 1.2 + 6, "", {
+				fontSize: "12px",
+			})
 			.setOrigin(0.5);
 
 		// Soft circular glow behind character
@@ -389,8 +394,8 @@ export class TitleScene extends Phaser.Scene {
 		});
 
 		// -- Right panel: Customization --
-		const rightPanelX = cx + 80;
-		const rightPanelW = 280;
+		const rightPanelX = cx + 120;
+		const rightPanelW = 320;
 
 		const rightBg = this.add.graphics();
 		rightBg.fillStyle(PANEL_BG, PANEL_ALPHA);
@@ -480,7 +485,7 @@ export class TitleScene extends Phaser.Scene {
 		this.renderTabContent(rightPanelX, panelTop + 42, rightPanelW);
 
 		// -- Bottom: Start button --
-		const bottomY = panelTop + panelH + 30;
+		const bottomY = panelTop + panelH + 50;
 
 		// Glow behind button
 		this.startGlow = this.add.rectangle(cx, bottomY, 280, 64, 0xff8800, 0.2);
@@ -529,6 +534,17 @@ export class TitleScene extends Phaser.Scene {
 				fontStyle: "bold",
 			})
 			.setOrigin(0.5);
+
+		// Idle pulse on the label
+		this.tweens.add({
+			targets: startLabel,
+			scaleX: 1.03,
+			scaleY: 1.03,
+			duration: 800,
+			yoyo: true,
+			repeat: -1,
+			ease: "Sine.easeInOut",
+		});
 
 		// Invisible interactive rect over the entire button
 		const startHitZone = this.add
@@ -972,8 +988,8 @@ export class TitleScene extends Phaser.Scene {
 		// Re-render active tab to update selection highlights
 		const { width } = this.cameras.main;
 		const cx = width / 2;
-		const rightPanelX = cx + 80;
-		this.renderTabContent(rightPanelX, 152, 280);
+		const rightPanelX = cx + 120;
+		this.renderTabContent(rightPanelX, 162, 320);
 		this.updateTabBar();
 
 		saveConfig(this.selected);

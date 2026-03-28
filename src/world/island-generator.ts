@@ -1,4 +1,10 @@
 import {
+	CLIMB_BAND_HEIGHT,
+	CLIMB_BAND_MAX_ISLANDS,
+	CLIMB_BAND_MIN_ISLANDS,
+	CLIMB_HORIZONTAL_REACH,
+	CLIMB_TOP_BAND_THRESHOLD,
+	CLIMB_TOP_SHRINK_RATIO,
 	DEAD_TREE_TRUNK_MAX,
 	DEAD_TREE_TRUNK_MIN,
 	DECORATION_FLOWER_CHANCE,
@@ -7,8 +13,8 @@ import {
 	FRUIT_PER_TREE_MIN,
 	HOME_ISLAND_HEIGHT,
 	HOME_ISLAND_WIDTH,
-	ISLAND_COUNT_MAX,
-	ISLAND_COUNT_MIN,
+	ISLAND_EDGE_INDENT_CHANCE,
+	ISLAND_EDGE_INDENT_MAX,
 	ISLAND_FLAT_WIDE_HEIGHT_MAX,
 	ISLAND_FLAT_WIDE_HEIGHT_MIN,
 	ISLAND_FLAT_WIDE_WIDTH_MAX,
@@ -150,6 +156,62 @@ const getDeepBlock = (biome: Island["biome"]): BlockType => {
 	}
 };
 
+/**
+ * Apply irregular edge indentations based on biome:
+ * - Rocky: jagged (narrower top, wider bottom with random cutouts)
+ * - Sandy: smoother/rounder (gentle indentations)
+ * - Others: random +/- 1 tile indentations on the sides
+ */
+const applyEdgeIrregularity = (grid: BlockType[][], island: Island): void => {
+	for (let y = 0; y < island.height; y++) {
+		let leftEdge = -1;
+		let rightEdge = -1;
+		for (let x = 0; x < island.width; x++) {
+			if (grid[y][x] !== BlockType.Air) {
+				if (leftEdge === -1) leftEdge = x;
+				rightEdge = x;
+			}
+		}
+		if (leftEdge === -1) continue;
+
+		const rowWidth = rightEdge - leftEdge + 1;
+		if (rowWidth <= 2) continue;
+
+		if (island.biome === "rocky") {
+			const jaggedChance =
+				y < island.height * 0.4
+					? ISLAND_EDGE_INDENT_CHANCE * 1.5
+					: ISLAND_EDGE_INDENT_CHANCE * 0.5;
+			if (Math.random() < jaggedChance) {
+				const indent = randomRange(1, ISLAND_EDGE_INDENT_MAX + 1);
+				for (let i = 0; i < indent && leftEdge + i < rightEdge; i++) {
+					grid[y][leftEdge + i] = BlockType.Air;
+				}
+			}
+			if (Math.random() < jaggedChance) {
+				const indent = randomRange(1, ISLAND_EDGE_INDENT_MAX + 1);
+				for (let i = 0; i < indent && rightEdge - i > leftEdge; i++) {
+					grid[y][rightEdge - i] = BlockType.Air;
+				}
+			}
+		} else if (island.biome === "sandy") {
+			if (y < 2 && Math.random() < ISLAND_EDGE_INDENT_CHANCE * 0.5) {
+				grid[y][leftEdge] = BlockType.Air;
+			}
+			if (y < 2 && Math.random() < ISLAND_EDGE_INDENT_CHANCE * 0.5) {
+				grid[y][rightEdge] = BlockType.Air;
+			}
+		} else {
+			if (Math.random() < ISLAND_EDGE_INDENT_CHANCE) {
+				grid[y][leftEdge] = BlockType.Air;
+			}
+			if (Math.random() < ISLAND_EDGE_INDENT_CHANCE) {
+				grid[y][rightEdge] = BlockType.Air;
+			}
+		}
+	}
+};
+
 const generateIslandShape = (
 	island: Island,
 	shape: IslandShape,
@@ -164,7 +226,6 @@ const generateIslandShape = (
 		let widthAtRow: number;
 
 		if (shape === "overhang" && y >= 1 && y <= 2) {
-			// Overhang: rows 1-2 are wider than the top
 			widthAtRow = Math.min(
 				island.width,
 				Math.floor(
@@ -198,6 +259,8 @@ const generateIslandShape = (
 			}
 		}
 	}
+
+	applyEdgeIrregularity(grid, island);
 
 	return grid;
 };
@@ -505,6 +568,57 @@ const addWaterPool = (worldGrid: BlockType[][], island: Island): void => {
 	}
 };
 
+/**
+ * Stamp an island's shape onto the world grid.
+ */
+const stampIsland = (
+	grid: BlockType[][],
+	island: Island,
+	shape: IslandShape,
+): void => {
+	const islandShape = generateIslandShape(island, shape);
+	for (let dy = 0; dy < island.height; dy++) {
+		for (let dx = 0; dx < island.width; dx++) {
+			const wx = island.x + dx;
+			const wy = island.y + dy;
+			if (
+				wx >= 0 &&
+				wx < WORLD_WIDTH_TILES &&
+				wy >= 0 &&
+				wy < WORLD_HEIGHT_TILES
+			) {
+				if (islandShape[dy][dx] !== BlockType.Air) {
+					grid[wy][wx] = islandShape[dy][dx];
+				}
+			}
+		}
+	}
+};
+
+/**
+ * Check that a candidate island doesn't overlap any existing islands.
+ */
+const isPlacementValid = (
+	islands: Island[],
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+): boolean =>
+	islands.every((other) => {
+		const dx = Math.abs(x + width / 2 - (other.x + other.width / 2));
+		const dy = Math.abs(y + height / 2 - (other.y + other.height / 2));
+		return dx > width + ISLAND_MIN_GAP || dy > height + ISLAND_MIN_GAP;
+	});
+
+/**
+ * Generate islands using a structured vertical-band climb path.
+ *
+ * The world is divided into horizontal bands (each CLIMB_BAND_HEIGHT rows).
+ * The home island sits at the center-bottom. Each band above gets 1-2 islands
+ * placed within horizontal reach of the band below, creating a zig-zag upward
+ * route. Bands near the top produce smaller, rarer islands.
+ */
 export const generateWorld = (): {
 	grid: BlockType[][];
 	islands: Island[];
@@ -532,85 +646,146 @@ export const generateWorld = (): {
 		width: HOME_ISLAND_WIDTH,
 		height: HOME_ISLAND_HEIGHT,
 		biome: "grassland",
+		role: "safe",
 	};
 	islands.push(homeIsland);
 
-	// Generate surrounding islands
-	const islandCount = randomRange(ISLAND_COUNT_MIN, ISLAND_COUNT_MAX);
-	for (let i = 0; i < islandCount; i++) {
-		const shape = pickIslandShape();
-		const { width, height } = getIslandDimensions(shape);
+	// -- Structured climb path: divide into vertical bands --
+	const homeTopY = homeIsland.y;
+	const bandCount = Math.floor((homeTopY - ISLAND_Y_MIN) / CLIMB_BAND_HEIGHT);
 
-		let x: number;
-		let y: number;
-		let attempts = 0;
-		let valid = false;
+	let prevBandCenters: number[] = [
+		Math.floor(homeIsland.x + homeIsland.width / 2),
+	];
 
-		do {
-			x = randomRange(ISLAND_MARGIN, WORLD_WIDTH_TILES - width - ISLAND_MARGIN);
-			y = randomRange(
-				ISLAND_Y_MIN,
-				WORLD_HEIGHT_TILES - height - ISLAND_Y_BOTTOM_MARGIN,
-			);
-			attempts++;
+	const placeBandIslands = (
+		bandTopY: number,
+		bandBottomY: number,
+		count: number,
+		shrink: boolean,
+		centers: number[],
+	): number[] => {
+		const bandCenters: number[] = [];
 
-			// Check minimum distance from other islands
-			valid = islands.every((other) => {
-				const dx = Math.abs(x + width / 2 - (other.x + other.width / 2));
-				const dy = Math.abs(y + height / 2 - (other.y + other.height / 2));
-				return dx > width + ISLAND_MIN_GAP || dy > height + ISLAND_MIN_GAP;
-			});
-		} while (!valid && attempts < ISLAND_PLACEMENT_ATTEMPTS);
+		for (let i = 0; i < count; i++) {
+			const shape = pickIslandShape();
+			let { width, height } = getIslandDimensions(shape);
 
-		if (valid) {
-			const island: Island = {
-				x,
-				y,
-				width,
-				height,
-				biome: biomes[randomRange(0, biomes.length - 1)],
-			};
-			islands.push(island);
-
-			// Stamp this island shape immediately so we can track it
-			const islandShape = generateIslandShape(island, shape);
-			for (let dy = 0; dy < island.height; dy++) {
-				for (let dx = 0; dx < island.width; dx++) {
-					const wx = island.x + dx;
-					const wy = island.y + dy;
-					if (
-						wx >= 0 &&
-						wx < WORLD_WIDTH_TILES &&
-						wy >= 0 &&
-						wy < WORLD_HEIGHT_TILES
-					) {
-						if (islandShape[dy][dx] !== BlockType.Air) {
-							grid[wy][wx] = islandShape[dy][dx];
-						}
-					}
-				}
+			if (shrink) {
+				width = Math.max(
+					ISLAND_WIDTH_MIN,
+					Math.floor(width * CLIMB_TOP_SHRINK_RATIO),
+				);
+				height = Math.max(
+					ISLAND_HEIGHT_MIN,
+					Math.floor(height * CLIMB_TOP_SHRINK_RATIO),
+				);
 			}
+
+			const refCenter = centers[Math.floor(Math.random() * centers.length)];
+
+			let x: number;
+			let y: number;
+			let attempts = 0;
+			let valid = false;
+
+			do {
+				const minX = Math.max(
+					ISLAND_MARGIN,
+					refCenter - CLIMB_HORIZONTAL_REACH - Math.floor(width / 2),
+				);
+				const maxX = Math.min(
+					WORLD_WIDTH_TILES - width - ISLAND_MARGIN,
+					refCenter + CLIMB_HORIZONTAL_REACH - Math.floor(width / 2),
+				);
+				x =
+					minX <= maxX
+						? randomRange(minX, maxX)
+						: randomRange(
+								ISLAND_MARGIN,
+								WORLD_WIDTH_TILES - width - ISLAND_MARGIN,
+							);
+
+				const minY = Math.max(ISLAND_Y_MIN, bandTopY);
+				const maxY = Math.max(minY, bandBottomY - height);
+				y = randomRange(minY, maxY);
+
+				attempts++;
+				valid = isPlacementValid(islands, x, y, width, height);
+			} while (!valid && attempts < ISLAND_PLACEMENT_ATTEMPTS);
+
+			if (valid) {
+				const island: Island = {
+					x,
+					y,
+					width,
+					height,
+					biome: biomes[randomRange(0, biomes.length - 1)],
+					role: "transit",
+				};
+				islands.push(island);
+				stampIsland(grid, island, shape);
+				bandCenters.push(Math.floor(x + width / 2));
+			}
+		}
+
+		return bandCenters;
+	};
+
+	// Place islands in bands going upward from the home island
+	for (let band = 0; band < bandCount; band++) {
+		const bandTopY = homeTopY - (band + 1) * CLIMB_BAND_HEIGHT;
+		const bandBottomY = bandTopY + CLIMB_BAND_HEIGHT;
+
+		const heightRatio = 1 - bandTopY / WORLD_HEIGHT_TILES;
+		const isTopRegion = heightRatio > CLIMB_TOP_BAND_THRESHOLD;
+		const islandCountInBand = isTopRegion
+			? CLIMB_BAND_MIN_ISLANDS
+			: randomRange(CLIMB_BAND_MIN_ISLANDS, CLIMB_BAND_MAX_ISLANDS);
+
+		const bandCenters = placeBandIslands(
+			bandTopY,
+			bandBottomY,
+			islandCountInBand,
+			isTopRegion,
+			prevBandCenters,
+		);
+
+		if (bandCenters.length > 0) {
+			prevBandCenters = bandCenters;
+		}
+	}
+
+	// Place a few islands below the home island for variety
+	const belowBandTop = homeIsland.y + homeIsland.height;
+	const belowBandBottom = WORLD_HEIGHT_TILES - ISLAND_Y_BOTTOM_MARGIN;
+	const belowBandCount = Math.floor(
+		(belowBandBottom - belowBandTop) / CLIMB_BAND_HEIGHT,
+	);
+
+	let prevBelowCenters: number[] = [
+		Math.floor(homeIsland.x + homeIsland.width / 2),
+	];
+
+	for (let band = 0; band < belowBandCount; band++) {
+		const bTop = belowBandTop + band * CLIMB_BAND_HEIGHT;
+		const bBottom = bTop + CLIMB_BAND_HEIGHT;
+
+		const bandCenters = placeBandIslands(
+			bTop,
+			bBottom,
+			CLIMB_BAND_MIN_ISLANDS,
+			false,
+			prevBelowCenters,
+		);
+
+		if (bandCenters.length > 0) {
+			prevBelowCenters = bandCenters;
 		}
 	}
 
 	// Stamp the home island (always normal shape)
-	const homeShape = generateIslandShape(homeIsland, "normal");
-	for (let dy = 0; dy < homeIsland.height; dy++) {
-		for (let dx = 0; dx < homeIsland.width; dx++) {
-			const wx = homeIsland.x + dx;
-			const wy = homeIsland.y + dy;
-			if (
-				wx >= 0 &&
-				wx < WORLD_WIDTH_TILES &&
-				wy >= 0 &&
-				wy < WORLD_HEIGHT_TILES
-			) {
-				if (homeShape[dy][dx] !== BlockType.Air) {
-					grid[wy][wx] = homeShape[dy][dx];
-				}
-			}
-		}
-	}
+	stampIsland(grid, homeIsland, "normal");
 
 	// Add trees, decorations, and water pools
 	for (const island of islands) {

@@ -19,12 +19,15 @@ export enum BlockType {
 	Berry = 17,
 }
 
+export type IslandRole = "safe" | "resource" | "reward" | "transit" | "goal";
+
 export interface Island {
 	x: number;
 	y: number;
 	width: number;
 	height: number;
 	biome: "grassland" | "rocky" | "sandy" | "mossy" | "crystal";
+	role: IslandRole;
 }
 
 export interface InventorySlot {
