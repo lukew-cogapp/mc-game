@@ -168,18 +168,21 @@ export class Npc extends Phaser.GameObjects.Container {
 	private dialogueIndex = 0;
 	private dialogueTimer = 0;
 	private fadeTween: Phaser.Tweens.Tween | null = null;
-	private spawnX: number;
-	private spawnY: number;
 	velocityY = 0;
 	alive = true;
 	npcName: string;
 
+	// Properties set by scene each frame
+	grid: BlockType[][] | null = null;
+	lavaY = Number.MAX_SAFE_INTEGER;
+	playerX = 0;
+	playerY = 0;
+
 	constructor(scene: Phaser.Scene, x: number, y: number, name: string) {
 		super(scene, x, y);
 		scene.add.existing(this);
+		this.addToUpdateList();
 
-		this.spawnX = x;
-		this.spawnY = y;
 		this.npcName = name;
 
 		// Body (small colored rectangle)
@@ -223,14 +226,12 @@ export class Npc extends Phaser.GameObjects.Container {
 		// Note: idle bob removed — NPC gravity now controls vertical position
 	}
 
-	update = (
-		playerX: number,
-		playerY: number,
-		delta: number,
-		grid: BlockType[][],
-		lavaY: number,
-	): string | null => {
-		if (!this.alive) return null;
+	preUpdate = (_time: number, delta: number): void => {
+		if (!this.alive) return;
+
+		// Guard: grid must be set by the scene before preUpdate runs
+		const grid = this.grid;
+		if (!grid) return;
 
 		// -- Gravity --
 		const dt = delta / 1000;
@@ -256,19 +257,20 @@ export class Npc extends Phaser.GameObjects.Container {
 		}
 
 		// -- Lava death --
-		if (this.y > lavaY) {
+		if (this.y > this.lavaY) {
 			this.alive = false;
 			this.bubble?.destroy();
 			this.bubble = null;
 			this.bubbleBg = null;
 			this.bubbleText = null;
+			this.emit("death", this.npcName);
 			this.destroy();
-			return `${this.npcName} fell into the lava!`;
+			return;
 		}
 
 		const interactDist = NPC_INTERACT_RANGE * TILE_SIZE;
-		const dx = playerX - this.x;
-		const dy = playerY - this.y;
+		const dx = this.playerX - this.x;
+		const dy = this.playerY - this.y;
 		const dist = Math.sqrt(dx * dx + dy * dy);
 		const inRange = dist <= interactDist;
 
@@ -307,8 +309,6 @@ export class Npc extends Phaser.GameObjects.Container {
 				});
 			}
 		}
-
-		return null;
 	};
 
 	private createBubble = (): void => {

@@ -1,3 +1,4 @@
+import type Toast from "phaser3-rex-plugins/templates/ui/toast/Toast";
 import {
 	createMusic,
 	type MusicPlayer,
@@ -67,7 +68,6 @@ import {
 } from "../player/block-interaction";
 import { BLOCK_NAMES, InventoryBar } from "../player/inventory";
 import {
-	createGameInput,
 	Player,
 	readGamepadButtons,
 	readGamepadRightStick,
@@ -78,7 +78,6 @@ import {
 	type LavaMeterUI,
 	updateLavaMeter,
 } from "../ui/lava-meter";
-import { NotificationManager } from "../ui/notifications";
 import {
 	type AmbientParticle,
 	createAmbientParticles,
@@ -134,7 +133,7 @@ export class GameScene extends Phaser.Scene {
 	private lava!: LavaLayer;
 	private hoverHighlight!: Phaser.GameObjects.Graphics;
 	private hoverTooltip!: Phaser.GameObjects.Text;
-	private notifications!: NotificationManager;
+	private toast!: Toast;
 	private dayNight!: DayNightCycle;
 	private lavaMeter!: LavaMeterUI;
 	private gpLBWasDown = false;
@@ -175,8 +174,6 @@ export class GameScene extends Phaser.Scene {
 		if (this.input.keyboard) {
 			this.input.keyboard.removeAllListeners();
 		}
-		// Destroy notification manager
-		this.notifications?.destroy();
 		// Stop background music
 		stopMusic(this.music);
 	}
@@ -257,6 +254,34 @@ export class GameScene extends Phaser.Scene {
 		this.spaceKey = this.input.keyboard.addKey(
 			Phaser.Input.Keyboard.KeyCodes.SPACE,
 		);
+
+		// Pass keyboard refs to the player for preUpdate input computation
+		this.player.setInput(this.cursors, this.wasd, this.spaceKey);
+
+		// Set initial grid on player so preUpdate can run immediately
+		this.player.grid = this.grid;
+
+		// Listen for player death events (emitted from Player.preUpdate)
+		this.player.on("death", () => {
+			this.scene.start("GameOverScene");
+		});
+		this.player.on("respawn", (lives: number) => {
+			this.toast.showMessage(
+				`You fell into the lava! ${lives} lives remaining`,
+			);
+		});
+
+		// Listen for NPC death events
+		for (const npc of this.npcs) {
+			npc.grid = this.grid;
+			npc.on("death", (name: string) => {
+				this.toast.showMessage(`${name} fell into the lava!`);
+				const idx = this.npcs.indexOf(npc);
+				if (idx !== -1) {
+					this.npcs.splice(idx, 1);
+				}
+			});
+		}
 
 		// Number keys for inventory slot selection
 		const KEY_NAMES = [
@@ -403,8 +428,25 @@ export class GameScene extends Phaser.Scene {
 			setMusicVolume(this.music, this.musicMuted ? 0 : MUSIC_VOLUME);
 		});
 
-		// Notification manager
-		this.notifications = new NotificationManager(this);
+		// Toast notifications (rexUI)
+		this.toast = this.rexUI.add
+			.toast({
+				x: this.cameras.main.width - 20,
+				y: this.cameras.main.height / 2,
+				background: this.rexUI.add.roundRectangle(0, 0, 0, 0, 8, 0x000000, 0.7),
+				text: this.add.text(0, 0, "", {
+					fontSize: "16px",
+					color: "#ffffff",
+					fontStyle: "bold",
+				}),
+				space: { left: 12, right: 12, top: 8, bottom: 8 },
+				duration: { in: 200, hold: 2500, out: 300 },
+				transitIn: 1, // fadeIn
+				transitOut: 1, // fadeOut
+			})
+			.setOrigin(1, 0.5)
+			.setScrollFactor(0)
+			.setDepth(101) as unknown as Toast;
 	}
 
 	private updateHoverHighlight = (): void => {
@@ -472,21 +514,16 @@ export class GameScene extends Phaser.Scene {
 		const lavaY = getLavaY(this.lava);
 		this.updateLavaGlow(lavaY);
 
-		// Update player
-		const input = createGameInput(this.cursors, this.wasd, this.spaceKey);
-		const livesBefore = this.player.lives;
-		const gameOver = this.player.update(input, this.grid, lavaY, delta);
-		if (gameOver) {
-			this.scene.start("GameOverScene");
-			return;
-		}
+		// Set per-frame properties on Player (preUpdate reads these)
+		this.player.grid = this.grid;
+		this.player.lavaY = lavaY;
 
-		// Player death notification (lost a life but not game over)
-		if (this.player.lives < livesBefore) {
-			this.notifications.show(
-				`You fell into the lava! ${this.player.lives} lives remaining`,
-				"#ff4444",
-			);
+		// Set per-frame properties on NPCs (preUpdate reads these)
+		for (const npc of this.npcs) {
+			npc.playerX = this.player.x;
+			npc.playerY = this.player.y;
+			npc.lavaY = lavaY;
+			npc.grid = this.grid;
 		}
 
 		// Win check — reached the top of the world
@@ -544,25 +581,6 @@ export class GameScene extends Phaser.Scene {
 
 		// Ambient upward-drifting particles
 		updateAmbientParticles(this.ambientParticles, delta);
-
-		// NPC gravity + dialogue
-		for (let i = this.npcs.length - 1; i >= 0; i--) {
-			const npc = this.npcs[i];
-			const deathMsg = npc.update(
-				this.player.x,
-				this.player.y,
-				delta,
-				this.grid,
-				lavaY,
-			);
-			if (deathMsg) {
-				this.notifications.show(deathMsg, "#ff6666");
-				this.npcs.splice(i, 1);
-			}
-		}
-
-		// Update notifications
-		this.notifications.update(delta);
 	}
 
 	private getGamepadTargetTile = (): { gx: number; gy: number } => {
@@ -746,7 +764,7 @@ export class GameScene extends Phaser.Scene {
 				});
 
 				// Notification
-				this.notifications.show("+1 Life! (from fruit)", "#44ff44");
+				this.toast.showMessage("+1 Life! (from fruit)");
 			}
 		}
 	};
@@ -805,7 +823,7 @@ export class GameScene extends Phaser.Scene {
 			});
 
 			// Notification
-			this.notifications.show("Jetpack fuel collected! +3s", "#ff8800");
+			this.toast.showMessage("Jetpack fuel collected! +3s");
 		}
 	};
 

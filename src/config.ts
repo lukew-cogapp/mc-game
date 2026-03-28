@@ -15,6 +15,7 @@ export const GLIDE_MAX_DURATION_MS = 3000;
 export const DOUBLE_JUMP_VELOCITY = -300;
 export const COYOTE_TIME_MS = 80;
 export const JUMP_BUFFER_MS = 100;
+export const JUMP_CUT_MULTIPLIER = 0.5;
 export const PLAYER_STEP_UP_HEIGHT = 1;
 
 // -- Island Generation --

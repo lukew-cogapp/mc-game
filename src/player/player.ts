@@ -14,6 +14,7 @@ import {
 	JETPACK_PARTICLE_SPEED,
 	JETPACK_THRUST,
 	JUMP_BUFFER_MS,
+	JUMP_CUT_MULTIPLIER,
 	JUMP_VELOCITY,
 	PLAYER_ACCELERATION,
 	PLAYER_BOB_AMPLITUDE,
@@ -198,6 +199,19 @@ export class Player extends Phaser.GameObjects.Container {
 	jetpackEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
 	glideTimer = 0;
 
+	// Properties set by scene each frame
+	grid: BlockType[][] | null = null;
+	lavaY = Number.MAX_SAFE_INTEGER;
+
+	// Keyboard input refs (set via setInput)
+	private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
+	private wasd: {
+		W: Phaser.Input.Keyboard.Key;
+		A: Phaser.Input.Keyboard.Key;
+		D: Phaser.Input.Keyboard.Key;
+	} | null = null;
+	private spaceKey: Phaser.Input.Keyboard.Key | null = null;
+
 	constructor(
 		scene: Phaser.Scene,
 		x: number,
@@ -206,6 +220,7 @@ export class Player extends Phaser.GameObjects.Container {
 	) {
 		super(scene, x, y);
 		scene.add.existing(this);
+		this.addToUpdateList();
 
 		this.spawnX = x;
 		this.spawnY = y;
@@ -300,12 +315,31 @@ export class Player extends Phaser.GameObjects.Container {
 		});
 	}
 
-	update = (
-		input: GameInput,
-		grid: BlockType[][],
-		lavaY: number,
-		delta: number,
-	): boolean => {
+	setInput = (
+		cursors: Phaser.Types.Input.Keyboard.CursorKeys,
+		wasd: {
+			W: Phaser.Input.Keyboard.Key;
+			A: Phaser.Input.Keyboard.Key;
+			D: Phaser.Input.Keyboard.Key;
+		},
+		spaceKey: Phaser.Input.Keyboard.Key,
+	): void => {
+		this.cursors = cursors;
+		this.wasd = wasd;
+		this.spaceKey = spaceKey;
+	};
+
+	preUpdate = (_time: number, delta: number): void => {
+		// Guard: grid must be set by the scene before preUpdate runs
+		const grid = this.grid;
+		if (!grid) return;
+
+		// Compute input from stored keyboard refs
+		const input =
+			this.cursors && this.wasd && this.spaceKey
+				? createGameInput(this.cursors, this.wasd, this.spaceKey)
+				: { left: false, right: false, up: false, jump: false };
+
 		// Tick invulnerability
 		if (this.invulnerableTimer > 0) {
 			this.invulnerableTimer -= delta;
@@ -423,7 +457,7 @@ export class Player extends Phaser.GameObjects.Container {
 
 		// Variable jump height: cut velocity when jump released early while ascending
 		if (!input.jump && this.jumpWasDown && this.velocityY < 0) {
-			this.velocityY *= 0.5;
+			this.velocityY *= JUMP_CUT_MULTIPLIER;
 		}
 
 		this.jumpWasDown = input.jump;
@@ -558,10 +592,11 @@ export class Player extends Phaser.GameObjects.Container {
 		}
 
 		// Lava death
-		if (this.y + halfH >= lavaY && this.invulnerableTimer <= 0) {
+		if (this.y + halfH >= this.lavaY && this.invulnerableTimer <= 0) {
 			this.lives--;
 			if (this.lives <= 0) {
-				return true; // Game over
+				this.emit("death");
+				return;
 			}
 			// Respawn with brief invulnerability
 			this.x = this.spawnX;
@@ -569,6 +604,7 @@ export class Player extends Phaser.GameObjects.Container {
 			this.velocityX = 0;
 			this.velocityY = 0;
 			this.invulnerableTimer = DEATH_INVULNERABLE_MS;
+			this.emit("respawn", this.lives);
 		}
 
 		// Visual: flip based on direction + gentle idle bob when grounded
@@ -583,8 +619,6 @@ export class Player extends Phaser.GameObjects.Container {
 		if (this.trailEmitter) {
 			this.trailEmitter.setPosition(this.x, this.y + TRAIL_PARTICLE_OFFSET_Y);
 		}
-
-		return false;
 	};
 }
 
