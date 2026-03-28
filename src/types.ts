@@ -18,6 +18,10 @@ export enum BlockType {
 	Strawberry = 16,
 	Berry = 17,
 	Jetpack = 18,
+	Ice = 19,
+	Thorns = 20,
+	CrumblingBlock = 21,
+	WindBlock = 22,
 }
 
 export type IslandRole = "safe" | "resource" | "reward" | "transit" | "goal";
@@ -48,4 +52,5 @@ export const NON_SOLID_BLOCKS: ReadonlySet<BlockType> = new Set([
 	BlockType.Strawberry,
 	BlockType.Berry,
 	BlockType.Jetpack,
+	BlockType.Thorns,
 ]);

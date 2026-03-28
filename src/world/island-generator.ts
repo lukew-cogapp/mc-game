@@ -3,6 +3,9 @@ import {
 	ASCENT_HORIZONTAL_REACH_MIN,
 	ASCENT_VERTICAL_GAP_MAX,
 	ASCENT_VERTICAL_GAP_MIN,
+	CRUMBLING_BRIDGE_CHANCE,
+	CRUMBLING_BRIDGE_WIDTH_MAX,
+	CRUMBLING_BRIDGE_WIDTH_MIN,
 	DEAD_TREE_TRUNK_MAX,
 	DEAD_TREE_TRUNK_MIN,
 	DECORATION_FLOWER_CHANCE,
@@ -11,8 +14,10 @@ import {
 	FRUIT_PER_TREE_MIN,
 	GOAL_ISLAND_HEIGHT,
 	GOAL_ISLAND_WIDTH,
+	HIGH_CLIMB_RATIO,
 	HOME_ISLAND_HEIGHT,
 	HOME_ISLAND_WIDTH,
+	ICE_SURFACE_REPLACE_CHANCE,
 	ISLAND_EDGE_INDENT_CHANCE,
 	ISLAND_EDGE_INDENT_MAX,
 	ISLAND_GRASS_DEPTH_RATIO,
@@ -57,6 +62,7 @@ import {
 	STARTER_ISLAND_COUNT,
 	STARTER_ZONE_RATIO,
 	STRAWBERRY_BUSH_CHANCE,
+	THORNS_DECORATION_CHANCE,
 	TILE_SIZE,
 	TRANSIT_ISLAND_HEIGHT_MAX,
 	TRANSIT_ISLAND_HEIGHT_MIN,
@@ -71,10 +77,14 @@ import {
 	WATER_POOL_DEPTH_MIN,
 	WATER_POOL_WIDTH_MAX,
 	WATER_POOL_WIDTH_MIN,
+	WIND_BLOCK_CLUSTER_MAX,
+	WIND_BLOCK_CLUSTER_MIN,
+	WIND_BLOCK_SPAWN_CHANCE,
 	WORLD_HEIGHT_TILES,
 	WORLD_WIDTH_TILES,
 } from "../config";
 import { BlockType, type Island, type IslandRole } from "../types";
+import { pickEnemySpawnPositions } from "./enemies";
 import { pickNpcSpawnPositions } from "./npcs";
 
 // ---------------------------------------------------------------------------
@@ -560,6 +570,126 @@ const addWaterPool = (worldGrid: BlockType[][], island: Island): void => {
 };
 
 // ---------------------------------------------------------------------------
+// Environmental hazards
+// ---------------------------------------------------------------------------
+
+/** Replace some surface blocks on crystal biome islands with ice */
+const addIceBlocks = (worldGrid: BlockType[][], island: Island): void => {
+	if (island.biome !== "crystal") return;
+	for (let dx = 0; dx < island.width; dx++) {
+		const wx = island.x + dx;
+		const wy = island.y;
+		if (wy < 0 || wy >= worldGrid.length || wx < 0 || wx >= worldGrid[0].length)
+			continue;
+		if (
+			worldGrid[wy][wx] === BlockType.CrystalBlock &&
+			Math.random() < ICE_SURFACE_REPLACE_CHANCE
+		) {
+			worldGrid[wy][wx] = BlockType.Ice;
+		}
+	}
+};
+
+/** Spawn thorn decorations on mossy/rocky islands (like flowers) */
+const addThorns = (worldGrid: BlockType[][], island: Island): void => {
+	if (island.biome !== "mossy" && island.biome !== "rocky") return;
+	for (let dx = 0; dx < island.width; dx++) {
+		const wx = island.x + dx;
+		const wy = island.y;
+		if (
+			wy <= 0 ||
+			wy >= worldGrid.length ||
+			wx < 0 ||
+			wx >= worldGrid[0].length
+		)
+			continue;
+		const surfaceBlock = worldGrid[wy][wx];
+		if (surfaceBlock === BlockType.Air) continue;
+		const above = wy - 1;
+		if (above < 0 || worldGrid[above][wx] !== BlockType.Air) continue;
+		if (Math.random() < THORNS_DECORATION_CHANCE) {
+			worldGrid[above][wx] = BlockType.Thorns;
+		}
+	}
+};
+
+/** Place crumbling block bridges between pairs of nearby islands */
+const addCrumblingBridges = (
+	worldGrid: BlockType[][],
+	islands: Island[],
+): void => {
+	for (let i = 0; i < islands.length - 1; i++) {
+		const a = islands[i];
+		const b = islands[i + 1];
+		if (a.role === "goal" || b.role === "goal") continue;
+		if (Math.random() > CRUMBLING_BRIDGE_CHANCE) continue;
+
+		// Check if islands are at a similar y level and horizontally separated
+		const aRight = a.x + a.width;
+		const bLeft = b.x;
+		const gap = bLeft - aRight;
+		if (gap < 2 || gap > 8) continue;
+		const yDiff = Math.abs(a.y - b.y);
+		if (yDiff > 3) continue;
+
+		const bridgeY = Math.min(a.y, b.y);
+		const bridgeWidth = randomRange(
+			CRUMBLING_BRIDGE_WIDTH_MIN,
+			Math.min(CRUMBLING_BRIDGE_WIDTH_MAX, gap),
+		);
+		const bridgeStartX = aRight + Math.floor((gap - bridgeWidth) / 2);
+
+		for (let dx = 0; dx < bridgeWidth; dx++) {
+			const wx = bridgeStartX + dx;
+			if (
+				wx >= 0 &&
+				wx < WORLD_WIDTH_TILES &&
+				bridgeY >= 0 &&
+				bridgeY < WORLD_HEIGHT_TILES &&
+				worldGrid[bridgeY][wx] === BlockType.Air
+			) {
+				worldGrid[bridgeY][wx] = BlockType.CrumblingBlock;
+			}
+		}
+	}
+};
+
+/** Place wind blocks in mid-air in the high climb zone */
+const addWindBlocks = (
+	worldGrid: BlockType[][],
+	islands: Island[],
+	chainTopY: number,
+	chainBottomY: number,
+): void => {
+	for (let i = 0; i < islands.length - 1; i++) {
+		const a = islands[i];
+		const b = islands[i + 1];
+		const heightRatio =
+			1 - (Math.min(a.y, b.y) - chainTopY) / (chainBottomY - chainTopY);
+		// Only in high climb zone
+		if (heightRatio < 1 - HIGH_CLIMB_RATIO) continue;
+		if (Math.random() > WIND_BLOCK_SPAWN_CHANCE) continue;
+
+		const midX = Math.floor((a.x + a.width / 2 + b.x + b.width / 2) / 2);
+		const midY = Math.floor((a.y + b.y) / 2);
+		const count = randomRange(WIND_BLOCK_CLUSTER_MIN, WIND_BLOCK_CLUSTER_MAX);
+
+		for (let w = 0; w < count; w++) {
+			const wx = midX + w;
+			if (
+				wx >= 0 &&
+				wx < WORLD_WIDTH_TILES &&
+				midY >= 0 &&
+				midY < WORLD_HEIGHT_TILES &&
+				worldGrid[midY][wx] === BlockType.Air
+			) {
+				worldGrid[midY][wx] = BlockType.WindBlock;
+			}
+		}
+	}
+};
+
+// ---------------------------------------------------------------------------
 // Ascent chain helpers
 // ---------------------------------------------------------------------------
 
@@ -676,6 +806,7 @@ export const generateWorld = (): {
 	spawnX: number;
 	spawnY: number;
 	npcPositions: { x: number; y: number; name: string }[];
+	enemyPositions: { x: number; y: number }[];
 } => {
 	const grid: BlockType[][] = Array.from({ length: WORLD_HEIGHT_TILES }, () =>
 		Array(WORLD_WIDTH_TILES).fill(BlockType.Air),
@@ -845,7 +976,13 @@ export const generateWorld = (): {
 			addWaterPool(grid, island);
 		}
 		addDecorations(grid, island);
+		addIceBlocks(grid, island);
+		addThorns(grid, island);
 	}
+
+	// 4a. Environmental hazards (cross-island)
+	addCrumblingBridges(grid, islands);
+	addWindBlocks(grid, islands, chainTopY, chainBottomY);
 
 	// 4b. Scatter jetpack power-ups on mid-to-high islands
 	const jetpackCount = randomRange(
@@ -908,5 +1045,8 @@ export const generateWorld = (): {
 	// 6. NPC placement
 	const npcPositions = pickNpcSpawnPositions(islands, grid);
 
-	return { grid, islands, spawnX, spawnY, npcPositions };
+	// 7. Enemy placement
+	const enemyPositions = pickEnemySpawnPositions(islands, grid);
+
+	return { grid, islands, spawnX, spawnY, npcPositions, enemyPositions };
 };

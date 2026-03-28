@@ -165,6 +165,104 @@ export const drawPixelArtTexture = (
 			gfx.strokeRect(0, 0, s, s);
 			break;
 		}
+		case BlockType.Ice: {
+			// Flat ice-blue surface with shine streaks
+			gfx.fillStyle(COLORS.ice);
+			gfx.fillRect(0, 0, s, s);
+			gfx.fillStyle(0xcceeff, 0.6);
+			gfx.fillRect(3, 4, 10, 2);
+			gfx.fillRect(18, 10, 8, 2);
+			gfx.fillRect(6, 20, 12, 2);
+			gfx.fillStyle(0xffffff, 0.5);
+			gfx.fillRect(5, 6, 6, 1);
+			gfx.fillRect(20, 12, 4, 1);
+			gfx.fillRect(8, 22, 8, 1);
+			gfx.fillStyle(0x77bbdd, 0.3);
+			gfx.fillRect(0, s - 3, s, 3);
+			gfx.lineStyle(1, 0x000000, 0.15);
+			gfx.strokeRect(0, 0, s, s);
+			break;
+		}
+		case BlockType.Thorns: {
+			// Dark green base with spiky protrusions
+			gfx.fillStyle(COLORS.thorns);
+			gfx.fillRect(0, cy, s, cy);
+			// Spikes pointing upward
+			gfx.fillStyle(0x1a4a0a);
+			gfx.beginPath();
+			gfx.moveTo(4, cy);
+			gfx.lineTo(6, 2);
+			gfx.lineTo(8, cy);
+			gfx.closePath();
+			gfx.fillPath();
+			gfx.beginPath();
+			gfx.moveTo(12, cy);
+			gfx.lineTo(15, 0);
+			gfx.lineTo(18, cy);
+			gfx.closePath();
+			gfx.fillPath();
+			gfx.beginPath();
+			gfx.moveTo(22, cy);
+			gfx.lineTo(25, 4);
+			gfx.lineTo(28, cy);
+			gfx.closePath();
+			gfx.fillPath();
+			// Thorn tips highlight
+			gfx.fillStyle(0x44aa22, 0.6);
+			gfx.fillCircle(6, 3, 1);
+			gfx.fillCircle(15, 1, 1);
+			gfx.fillCircle(25, 5, 1);
+			break;
+		}
+		case BlockType.CrumblingBlock: {
+			// Stone-colored block with subtle crack lines
+			gfx.fillStyle(COLORS.crumblingBlock);
+			gfx.fillRect(0, 0, s, s);
+			gfx.fillStyle(0x707070, 0.5);
+			gfx.fillRect(2, 2, 12, 8);
+			gfx.fillRect(16, 14, 10, 6);
+			gfx.fillRect(4, 22, 8, 6);
+			// Crack lines
+			gfx.lineStyle(1, 0x444444, 0.5);
+			gfx.beginPath();
+			gfx.moveTo(cx, 0);
+			gfx.lineTo(cx + 3, cy);
+			gfx.lineTo(cx - 2, s);
+			gfx.strokePath();
+			gfx.beginPath();
+			gfx.moveTo(0, cy - 4);
+			gfx.lineTo(cx, cy);
+			gfx.lineTo(s, cy + 3);
+			gfx.strokePath();
+			gfx.lineStyle(1, 0x000000, 0.15);
+			gfx.strokeRect(0, 0, s, s);
+			break;
+		}
+		case BlockType.WindBlock: {
+			// Mostly transparent with faint blue arrow indicators
+			gfx.fillStyle(COLORS.windBlock, 0.15);
+			gfx.fillRect(0, 0, s, s);
+			// Faint blue arrows pointing right (visual indicator)
+			gfx.fillStyle(0x88bbff, 0.35);
+			// Arrow 1
+			gfx.beginPath();
+			gfx.moveTo(4, cy - 6);
+			gfx.lineTo(12, cy);
+			gfx.lineTo(4, cy + 6);
+			gfx.closePath();
+			gfx.fillPath();
+			// Arrow 2
+			gfx.beginPath();
+			gfx.moveTo(16, cy - 6);
+			gfx.lineTo(24, cy);
+			gfx.lineTo(16, cy + 6);
+			gfx.closePath();
+			gfx.fillPath();
+			// Subtle streaks
+			gfx.fillStyle(0xaaddff, 0.2);
+			gfx.fillRect(2, cy - 1, s - 4, 2);
+			break;
+		}
 	}
 };
 
@@ -180,4 +278,8 @@ export const CUSTOM_TEXTURE_BLOCKS = new Set([
 	BlockType.Water,
 	BlockType.Leaf,
 	BlockType.Jetpack,
+	BlockType.Ice,
+	BlockType.Thorns,
+	BlockType.CrumblingBlock,
+	BlockType.WindBlock,
 ]);

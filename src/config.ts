@@ -229,6 +229,10 @@ export const COLORS = {
 	strawberry: 0xcc2244,
 	berry: 0x6622aa,
 	jetpack: 0xdd4400,
+	ice: 0x99ddff,
+	thorns: 0x2a6a1a,
+	crumblingBlock: 0x888888,
+	windBlock: 0x88bbff,
 	playerBody: 0x3498db,
 	playerHead: 0xf1c27d,
 	selected: 0xffff00,
@@ -794,6 +798,32 @@ export const MINE_TIME_CRYSTAL = 800;
 export const MINE_TIME_DEAD_WOOD = 300;
 export const MINE_TIME_DEFAULT = 300;
 
+// -- Enemies --
+export const ENEMY_COUNT = 2;
+export const ENEMY_PATROL_SPEED = 60;
+export const ENEMY_CHASE_SPEED = 90;
+export const ENEMY_CHASE_RANGE_TILES = 5;
+export const ENEMY_BODY_WIDTH = 18;
+export const ENEMY_BODY_HEIGHT = 22;
+export const ENEMY_BODY_COLOR = 0xcc2222;
+export const ENEMY_EYE_COLOR = 0xffffff;
+export const ENEMY_PUPIL_COLOR = 0x000000;
+export const ENEMY_GRAVITY = 800;
+export const ENEMY_STOMP_BOUNCE = -250;
+export const ENEMY_PATROL_REVERSE_MS = 3000;
+export const ENEMY_BOB_SPEED = 0.004;
+export const ENEMY_BOB_AMPLITUDE = 1;
+export const ENEMY_EYE_OFFSET_X = 3;
+export const ENEMY_EYE_OFFSET_Y = -3;
+export const ENEMY_EYE_WIDTH = 5;
+export const ENEMY_EYE_HEIGHT = 4;
+export const ENEMY_PUPIL_RADIUS = 1;
+export const ENEMY_BROW_OFFSET_Y = 2;
+export const ENEMY_BROW_WIDTH = 5;
+export const ENEMY_DEPTH = 10;
+export const ENEMY_FALL_CHECK_OFFSET = 1;
+export const ENEMY_SPAWN_MAX_UPWARD_SEARCH = 3;
+
 // -- NPC Physics --
 export const NPC_GRAVITY = 600;
 export const NPC_FALL_CHECK_OFFSET = 1;
@@ -817,3 +847,18 @@ export const NPC_NAMES: readonly string[] = [
 	"Leaf",
 	"Spark",
 ] as const;
+
+// -- Environmental Hazards --
+export const ICE_DECELERATION_MULTIPLIER = 0.2;
+export const THORNS_DAMAGE_LIVES = 1;
+export const CRUMBLING_BLOCK_TIMER_MS = 1000;
+export const WIND_FORCE = 150;
+export const WIND_RANGE_TILES = 2;
+export const ICE_SURFACE_REPLACE_CHANCE = 0.3;
+export const THORNS_DECORATION_CHANCE = 0.1;
+export const CRUMBLING_BRIDGE_CHANCE = 0.3;
+export const CRUMBLING_BRIDGE_WIDTH_MIN = 2;
+export const CRUMBLING_BRIDGE_WIDTH_MAX = 4;
+export const WIND_BLOCK_SPAWN_CHANCE = 0.2;
+export const WIND_BLOCK_CLUSTER_MIN = 2;
+export const WIND_BLOCK_CLUSTER_MAX = 4;

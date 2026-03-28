@@ -36,6 +36,10 @@ const BLOCK_COLOR_MAP: Record<BlockType, number | null> = {
 	[BlockType.Strawberry]: COLORS.strawberry,
 	[BlockType.Berry]: COLORS.berry,
 	[BlockType.Jetpack]: COLORS.jetpack,
+	[BlockType.Ice]: COLORS.ice,
+	[BlockType.Thorns]: COLORS.thorns,
+	[BlockType.CrumblingBlock]: COLORS.crumblingBlock,
+	[BlockType.WindBlock]: COLORS.windBlock,
 };
 
 export const createWorldTextures = (scene: Phaser.Scene): void => {

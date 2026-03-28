@@ -38,6 +38,10 @@ export const BLOCK_NAMES: Record<BlockType, string> = {
 	[BlockType.Strawberry]: "Strawberry",
 	[BlockType.Berry]: "Berry",
 	[BlockType.Jetpack]: "Jetpack",
+	[BlockType.Ice]: "Ice",
+	[BlockType.Thorns]: "Thorns",
+	[BlockType.CrumblingBlock]: "Crumbling Block",
+	[BlockType.WindBlock]: "Wind Block",
 };
 
 export class InventoryBar extends Phaser.GameObjects.Container {

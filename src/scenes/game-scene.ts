@@ -10,6 +10,10 @@ import { loadSettings } from "../audio/settings";
 import {
 	BLOCK_INTERACT_RANGE,
 	CAMERA_LERP,
+	DEATH_INVULNERABLE_MS,
+	ENEMY_BODY_HEIGHT,
+	ENEMY_BODY_WIDTH,
+	ENEMY_STOMP_BOUNCE,
 	FRUIT_PER_LIFE,
 	FRUIT_POPUP_DURATION,
 	FRUIT_POPUP_OFFSET_Y,
@@ -88,6 +92,7 @@ import {
 	updateLeafParticles,
 } from "../world/ambient";
 import { DayNightCycle } from "../world/day-night";
+import { Enemy } from "../world/enemies";
 import { generateWorld } from "../world/island-generator";
 import { Lava } from "../world/lava";
 import { Npc } from "../world/npcs";
@@ -140,6 +145,9 @@ export class GameScene extends Phaser.Scene {
 	// NPCs
 	private npcs: Npc[] = [];
 
+	// Enemies
+	private enemies: Enemy[] = [];
+
 	// Clouds
 	private clouds: Phaser.GameObjects.Container[] = [];
 
@@ -183,7 +191,8 @@ export class GameScene extends Phaser.Scene {
 
 		// Generate world
 		createWorldTextures(this);
-		const { grid, spawnX, spawnY, npcPositions } = generateWorld();
+		const { grid, spawnX, spawnY, npcPositions, enemyPositions } =
+			generateWorld();
 		this.grid = grid;
 		this.blockGroup = renderWorld(this, grid);
 
@@ -261,6 +270,9 @@ export class GameScene extends Phaser.Scene {
 				`You fell into the lava! ${lives} lives remaining`,
 			);
 		});
+		this.player.on("crumbleBlock", (gx: number, gy: number) => {
+			removeBlockSprite(this.blockGroup, gx, gy);
+		});
 
 		// Listen for NPC death events
 		for (const npc of this.npcs) {
@@ -270,6 +282,19 @@ export class GameScene extends Phaser.Scene {
 				const idx = this.npcs.indexOf(npc);
 				if (idx !== -1) {
 					this.npcs.splice(idx, 1);
+				}
+			});
+		}
+
+		// Enemies
+		this.enemies = enemyPositions.map((pos) => new Enemy(this, pos.x, pos.y));
+		for (const enemy of this.enemies) {
+			enemy.grid = this.grid;
+			enemy.on("death", () => {
+				this.toast.showMessage("Enemy defeated!");
+				const idx = this.enemies.indexOf(enemy);
+				if (idx !== -1) {
+					this.enemies.splice(idx, 1);
 				}
 			});
 		}
@@ -515,6 +540,15 @@ export class GameScene extends Phaser.Scene {
 			npc.lavaY = lavaY;
 			npc.grid = this.grid;
 		}
+
+		// Set per-frame properties on Enemies and check player collision
+		for (const enemy of this.enemies) {
+			enemy.playerX = this.player.x;
+			enemy.playerY = this.player.y;
+			enemy.lavaY = lavaY;
+			enemy.grid = this.grid;
+		}
+		this.checkEnemyCollisions();
 
 		// Win check — reached the top of the world
 		if (this.player.y < WIN_ZONE_Y_TILES * TILE_SIZE) {
@@ -867,6 +901,44 @@ export class GameScene extends Phaser.Scene {
 			);
 		} else {
 			this.fruitText.setText("");
+		}
+	};
+
+	private checkEnemyCollisions = (): void => {
+		const pHalfW = PLAYER_WIDTH / 2;
+		const pHalfH = PLAYER_HEIGHT / 2;
+		const eHalfW = ENEMY_BODY_WIDTH / 2;
+		const eHalfH = ENEMY_BODY_HEIGHT / 2;
+
+		for (let i = this.enemies.length - 1; i >= 0; i--) {
+			const enemy = this.enemies[i];
+			if (!enemy.alive) continue;
+
+			// AABB overlap check
+			const overlapX = Math.abs(this.player.x - enemy.x) < pHalfW + eHalfW;
+			const overlapY = Math.abs(this.player.y - enemy.y) < pHalfH + eHalfH;
+
+			if (!overlapX || !overlapY) continue;
+
+			// Player is above enemy center and moving downward: STOMP
+			const playerBottom = this.player.y + pHalfH;
+
+			if (playerBottom < enemy.y && this.player.velocityY > 0) {
+				// Stomp kill
+				enemy.alive = false;
+				enemy.emit("death");
+				enemy.destroy();
+				this.player.velocityY = ENEMY_STOMP_BOUNCE;
+			} else if (this.player.invulnerableTimer <= 0) {
+				// Damage the player
+				this.player.lives--;
+				if (this.player.lives <= 0) {
+					this.player.emit("death");
+					return;
+				}
+				this.player.invulnerableTimer = DEATH_INVULNERABLE_MS;
+				this.player.emit("respawn", this.player.lives);
+			}
 		}
 	};
 

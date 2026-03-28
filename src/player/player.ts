@@ -1,6 +1,7 @@
 import {
 	COLORS,
 	COYOTE_TIME_MS,
+	CRUMBLING_BLOCK_TIMER_MS,
 	DEATH_INVULNERABLE_MS,
 	DOUBLE_JUMP_VELOCITY,
 	GAMEPAD_STICK_DEADZONE,
@@ -8,6 +9,7 @@ import {
 	GLIDE_HORIZONTAL_BOOST,
 	GLIDE_MAX_DURATION_MS,
 	GRAVITY,
+	ICE_DECELERATION_MULTIPLIER,
 	JETPACK_PARTICLE_FREQUENCY,
 	JETPACK_PARTICLE_GRAVITY_Y,
 	JETPACK_PARTICLE_LIFESPAN,
@@ -38,6 +40,7 @@ import {
 	PLAYER_STEP_UP_HEIGHT,
 	PLAYER_WIDTH,
 	STARTING_LIVES,
+	THORNS_DAMAGE_LIVES,
 	TILE_SIZE,
 	TRAIL_BUBBLES_GRAVITY_Y,
 	TRAIL_BUBBLES_LIFESPAN,
@@ -56,6 +59,8 @@ import {
 	TRAIL_SPARKLE_LIFESPAN,
 	TRAIL_SPARKLE_SPEED,
 	WATER_SPEED_MULTIPLIER,
+	WIND_FORCE,
+	WIND_RANGE_TILES,
 } from "../config";
 import type { CharacterConfig } from "../scenes/title-scene";
 import { BlockType, NON_SOLID_BLOCKS } from "../types";
@@ -175,6 +180,66 @@ const isInWater = (
 	return grid[gridY][gridX] === BlockType.Water;
 };
 
+/** Check if the block directly under the player's feet is a given type */
+const getBlockUnderFeet = (
+	grid: BlockType[][],
+	worldX: number,
+	worldY: number,
+	halfW: number,
+	halfH: number,
+): BlockType => {
+	const feetY = worldY + halfH + 1;
+	const gridY = Math.floor(feetY / TILE_SIZE);
+	const gridXLeft = Math.floor(
+		(worldX - halfW + PLAYER_COLLISION_INSET) / TILE_SIZE,
+	);
+	const gridXRight = Math.floor(
+		(worldX + halfW - PLAYER_COLLISION_INSET) / TILE_SIZE,
+	);
+	if (gridY < 0 || gridY >= grid.length) return BlockType.Air;
+	// Check left foot then right foot
+	if (
+		gridXLeft >= 0 &&
+		gridXLeft < grid[0].length &&
+		grid[gridY][gridXLeft] !== BlockType.Air
+	) {
+		return grid[gridY][gridXLeft];
+	}
+	if (
+		gridXRight >= 0 &&
+		gridXRight < grid[0].length &&
+		grid[gridY][gridXRight] !== BlockType.Air
+	) {
+		return grid[gridY][gridXRight];
+	}
+	return BlockType.Air;
+};
+
+/** Get tiles the player currently overlaps */
+const getOverlappingTiles = (
+	worldX: number,
+	worldY: number,
+	halfW: number,
+	halfH: number,
+): { gx: number; gy: number }[] => [
+	{
+		gx: Math.floor((worldX - halfW) / TILE_SIZE),
+		gy: Math.floor(worldY / TILE_SIZE),
+	},
+	{
+		gx: Math.floor((worldX + halfW) / TILE_SIZE),
+		gy: Math.floor(worldY / TILE_SIZE),
+	},
+	{
+		gx: Math.floor(worldX / TILE_SIZE),
+		gy: Math.floor((worldY - halfH) / TILE_SIZE),
+	},
+	{
+		gx: Math.floor(worldX / TILE_SIZE),
+		gy: Math.floor((worldY + halfH) / TILE_SIZE),
+	},
+];
+
 export class Player extends Phaser.GameObjects.Container {
 	velocityX = 0;
 	velocityY = 0;
@@ -198,6 +263,9 @@ export class Player extends Phaser.GameObjects.Container {
 	jetpackActive = false;
 	jetpackEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
 	glideTimer = 0;
+
+	/** Tracks crumbling blocks the player is standing on: key -> elapsed ms */
+	crumblingTimers = new Map<string, number>();
 
 	// Properties set by scene each frame
 	grid: BlockType[][] | null = null;
@@ -362,6 +430,19 @@ export class Player extends Phaser.GameObjects.Container {
 		const speedMultiplier = inWater ? WATER_SPEED_MULTIPLIER : 1;
 		const targetSpeed = PLAYER_SPEED * speedMultiplier;
 
+		// Ice: check if block under feet is ice to reduce deceleration
+		const blockUnderFeet = getBlockUnderFeet(
+			grid,
+			this.x,
+			this.y,
+			halfW,
+			halfH,
+		);
+		const onIce = this.isGrounded && blockUnderFeet === BlockType.Ice;
+		const deceleration = onIce
+			? PLAYER_DECELERATION * ICE_DECELERATION_MULTIPLIER
+			: PLAYER_DECELERATION;
+
 		// Acceleration-based horizontal movement
 		if (input.left) {
 			this.velocityX = Math.max(
@@ -378,9 +459,9 @@ export class Player extends Phaser.GameObjects.Container {
 		} else {
 			// Decelerate toward 0
 			if (this.velocityX > 0) {
-				this.velocityX = Math.max(0, this.velocityX - PLAYER_DECELERATION * dt);
+				this.velocityX = Math.max(0, this.velocityX - deceleration * dt);
 			} else if (this.velocityX < 0) {
-				this.velocityX = Math.min(0, this.velocityX + PLAYER_DECELERATION * dt);
+				this.velocityX = Math.min(0, this.velocityX + deceleration * dt);
 			}
 		}
 
@@ -589,6 +670,98 @@ export class Player extends Phaser.GameObjects.Container {
 		if (this.isGrounded && !this.wasGrounded) {
 			this.spawnX = this.x;
 			this.spawnY = this.y;
+		}
+
+		// --- Environmental Hazards ---
+
+		// Thorns: overlap check — damages player on contact
+		if (this.invulnerableTimer <= 0) {
+			const overlapping = getOverlappingTiles(this.x, this.y, halfW, halfH);
+			for (const { gx, gy } of overlapping) {
+				if (
+					gx >= 0 &&
+					gx < grid[0].length &&
+					gy >= 0 &&
+					gy < grid.length &&
+					grid[gy][gx] === BlockType.Thorns
+				) {
+					this.lives -= THORNS_DAMAGE_LIVES;
+					if (this.lives <= 0) {
+						this.emit("death");
+						return;
+					}
+					this.invulnerableTimer = DEATH_INVULNERABLE_MS;
+					this.emit("respawn", this.lives);
+					break;
+				}
+			}
+		}
+
+		// Crumbling blocks: track standing time and break after timer
+		if (this.isGrounded) {
+			const feetY = this.y + halfH + 1;
+			const feetGridY = Math.floor(feetY / TILE_SIZE);
+			const feetLeftX = Math.floor(
+				(this.x - halfW + PLAYER_COLLISION_INSET) / TILE_SIZE,
+			);
+			const feetRightX = Math.floor(
+				(this.x + halfW - PLAYER_COLLISION_INSET) / TILE_SIZE,
+			);
+			const crumblingUnder: string[] = [];
+			for (const gx of [feetLeftX, feetRightX]) {
+				if (
+					gx >= 0 &&
+					gx < grid[0].length &&
+					feetGridY >= 0 &&
+					feetGridY < grid.length &&
+					grid[feetGridY][gx] === BlockType.CrumblingBlock
+				) {
+					const key = `${gx},${feetGridY}`;
+					crumblingUnder.push(key);
+					const elapsed = (this.crumblingTimers.get(key) ?? 0) + delta;
+					this.crumblingTimers.set(key, elapsed);
+					if (elapsed >= CRUMBLING_BLOCK_TIMER_MS) {
+						grid[feetGridY][gx] = BlockType.Air;
+						this.crumblingTimers.delete(key);
+						this.emit("crumbleBlock", gx, feetGridY);
+					}
+				}
+			}
+			// Remove timers for blocks we are no longer standing on
+			for (const key of this.crumblingTimers.keys()) {
+				if (!crumblingUnder.includes(key)) {
+					this.crumblingTimers.delete(key);
+				}
+			}
+		} else {
+			this.crumblingTimers.clear();
+		}
+
+		// Wind blocks: apply horizontal force when within range
+		const playerGridX = Math.floor(this.x / TILE_SIZE);
+		const playerGridY = Math.floor(this.y / TILE_SIZE);
+		for (
+			let wy = playerGridY - WIND_RANGE_TILES;
+			wy <= playerGridY + WIND_RANGE_TILES;
+			wy++
+		) {
+			for (
+				let wx = playerGridX - WIND_RANGE_TILES;
+				wx <= playerGridX + WIND_RANGE_TILES;
+				wx++
+			) {
+				if (
+					wx >= 0 &&
+					wx < grid[0].length &&
+					wy >= 0 &&
+					wy < grid.length &&
+					grid[wy][wx] === BlockType.WindBlock
+				) {
+					// Alternate direction: even x pushes right, odd x pushes left
+					const windDirection = wx % 2 === 0 ? 1 : -1;
+					this.velocityX += windDirection * WIND_FORCE * dt;
+				}
+			}
 		}
 
 		// Lava death
