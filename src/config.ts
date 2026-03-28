@@ -331,6 +331,11 @@ export const HOVER_HIGHLIGHT_COLOR = 0xffffff;
 export const HOVER_HIGHLIGHT_ALPHA = 0.35;
 export const HOVER_HIGHLIGHT_LINE_WIDTH = 2;
 
+// -- Hover Tooltip --
+export const HOVER_TOOLTIP_FONT_SIZE = "14px";
+export const HOVER_TOOLTIP_OFFSET_Y = -24;
+export const HOVER_TOOLTIP_BG = "#00000088";
+
 // -- Mining Crack Overlay --
 export const CRACK_LINE_COLOR = 0x000000;
 export const CRACK_LINE_ALPHA = 0.7;
@@ -423,7 +428,7 @@ export const TITLE_PANEL_RADIUS = 16;
 export const TITLE_CELL_BG = 0x1a1a44;
 export const TITLE_CELL_BG_HOVER = 0x2a2a55;
 export const TITLE_CELL_SELECTED_BORDER = 0xffdd44;
-export const TITLE_CELL_UNSELECTED_BORDER = 0x444466;
+export const TITLE_CELL_UNSELECTED_BORDER = 0x555577;
 export const TITLE_CELL_SIZE = 56;
 export const TITLE_CELL_GAP = 12;
 export const TITLE_PREVIEW_SCALE = 4;
@@ -568,7 +573,7 @@ export const NPC_BUBBLE_FALLBACK_HEIGHT = 30;
 // -- Lava Visual --
 export const LAVA_STRIPE_COUNT = 20;
 export const LAVA_SURFACE_HEIGHT = 4;
-export const LAVA_SURFACE_STEP = 8;
+export const LAVA_SURFACE_STEP = 16;
 export const LAVA_SURFACE_WAVE_AMP = 3;
 export const LAVA_SURFACE_COLOR = 0xffaa00;
 export const LAVA_SURFACE_ALPHA = 0.6;

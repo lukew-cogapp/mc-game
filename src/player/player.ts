@@ -6,6 +6,7 @@ import {
 	GAMEPAD_STICK_DEADZONE,
 	GLIDE_GRAVITY,
 	GLIDE_HORIZONTAL_BOOST,
+	GLIDE_MAX_DURATION_MS,
 	GRAVITY,
 	JETPACK_PARTICLE_FREQUENCY,
 	JETPACK_PARTICLE_GRAVITY_Y,
@@ -33,6 +34,7 @@ import {
 	PLAYER_OUTLINE_OFFSET,
 	PLAYER_SHADOW_ALPHA,
 	PLAYER_SPEED,
+	PLAYER_STEP_UP_HEIGHT,
 	PLAYER_WIDTH,
 	STARTING_LIVES,
 	TILE_SIZE,
@@ -194,6 +196,7 @@ export class Player extends Phaser.GameObjects.Container {
 	jetpackFuel = 0;
 	jetpackActive = false;
 	jetpackEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+	glideTimer = 0;
 
 	constructor(
 		scene: Phaser.Scene,
@@ -354,12 +357,19 @@ export class Player extends Phaser.GameObjects.Container {
 			this.velocityY > 0 &&
 			!this.jetpackActive;
 		if (this.isGliding) {
+			this.glideTimer += delta;
+			if (this.glideTimer >= GLIDE_MAX_DURATION_MS) {
+				this.isGliding = false;
+			}
 			// Boost max speed while gliding, but don't multiply every frame
 			const glideMaxSpeed = targetSpeed * GLIDE_HORIZONTAL_BOOST;
 			this.velocityX = Math.max(
 				-glideMaxSpeed,
 				Math.min(glideMaxSpeed, this.velocityX),
 			);
+		}
+		if (this.isGrounded) {
+			this.glideTimer = 0;
 		}
 
 		// Gravity
@@ -443,16 +453,44 @@ export class Player extends Phaser.GameObjects.Container {
 		const headY = this.y - halfH;
 
 		const collidesLeft =
-			checkCollision(grid, newX - halfW, footY) ||
-			checkCollision(grid, newX - halfW, headY);
+			checkCollision(grid, newX - halfW + PLAYER_COLLISION_INSET, footY) ||
+			checkCollision(grid, newX - halfW + PLAYER_COLLISION_INSET, headY);
 		const collidesRight =
-			checkCollision(grid, newX + halfW, footY) ||
-			checkCollision(grid, newX + halfW, headY);
+			checkCollision(grid, newX + halfW - PLAYER_COLLISION_INSET, footY) ||
+			checkCollision(grid, newX + halfW - PLAYER_COLLISION_INSET, headY);
 
 		if (this.velocityX < 0 && !collidesLeft) {
 			this.x = newX;
 		} else if (this.velocityX > 0 && !collidesRight) {
 			this.x = newX;
+		} else if (this.velocityX !== 0) {
+			// Step-up: try to climb 1-tile obstacles
+			const stepCheckX = this.velocityX < 0 ? newX - halfW : newX + halfW;
+			const blockGy = Math.floor(footY / TILE_SIZE);
+			const blockGx = Math.floor(stepCheckX / TILE_SIZE);
+			const aboveGy = blockGy - PLAYER_STEP_UP_HEIGHT;
+			// Check tile above blocker is non-solid
+			const aboveClear =
+				aboveGy >= 0 &&
+				aboveGy < grid.length &&
+				blockGx >= 0 &&
+				blockGx < grid[0].length &&
+				NON_SOLID_BLOCKS.has(grid[aboveGy][blockGx]);
+			// Check player head wouldn't collide 1 tile up
+			const headClearLeft = !checkCollision(
+				grid,
+				this.x - halfW + PLAYER_COLLISION_INSET,
+				headY - TILE_SIZE,
+			);
+			const headClearRight = !checkCollision(
+				grid,
+				this.x + halfW - PLAYER_COLLISION_INSET,
+				headY - TILE_SIZE,
+			);
+			if (aboveClear && headClearLeft && headClearRight) {
+				this.y -= TILE_SIZE;
+				this.x = newX;
+			}
 		}
 
 		// Move vertically

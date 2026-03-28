@@ -17,6 +17,9 @@ import {
 	HOVER_HIGHLIGHT_ALPHA,
 	HOVER_HIGHLIGHT_COLOR,
 	HOVER_HIGHLIGHT_LINE_WIDTH,
+	HOVER_TOOLTIP_BG,
+	HOVER_TOOLTIP_FONT_SIZE,
+	HOVER_TOOLTIP_OFFSET_Y,
 	HUD_FRUIT_COLOR,
 	HUD_FRUIT_FONT_SIZE,
 	HUD_FRUIT_MARGIN_RIGHT,
@@ -29,7 +32,6 @@ import {
 	HUD_LIVES_MARGIN_RIGHT,
 	HUD_LIVES_OFFSET_X,
 	HUD_LIVES_Y,
-	HUD_POPUP_FONT_SIZE,
 	HUD_TIMER_BG_COLOR,
 	HUD_TIMER_COLOR,
 	HUD_TIMER_FONT_SIZE,
@@ -63,7 +65,7 @@ import {
 	handleBlockBreak,
 	handleBlockPlace,
 } from "../player/block-interaction";
-import { InventoryBar } from "../player/inventory";
+import { BLOCK_NAMES, InventoryBar } from "../player/inventory";
 import {
 	createGameInput,
 	Player,
@@ -131,6 +133,7 @@ export class GameScene extends Phaser.Scene {
 	private blockInteraction!: BlockInteraction;
 	private lava!: LavaLayer;
 	private hoverHighlight!: Phaser.GameObjects.Graphics;
+	private hoverTooltip!: Phaser.GameObjects.Text;
 	private notifications!: NotificationManager;
 	private dayNight!: DayNightCycle;
 	private lavaMeter!: LavaMeterUI;
@@ -322,6 +325,18 @@ export class GameScene extends Phaser.Scene {
 		// Hover highlight
 		this.hoverHighlight = this.add.graphics();
 
+		// Hover tooltip (screen-space, hidden initially)
+		this.hoverTooltip = this.add
+			.text(0, 0, "", {
+				fontSize: HOVER_TOOLTIP_FONT_SIZE,
+				backgroundColor: HOVER_TOOLTIP_BG,
+				padding: { x: 4, y: 2 },
+			})
+			.setOrigin(0.5, 1)
+			.setScrollFactor(0)
+			.setDepth(UI_DEPTH)
+			.setVisible(false);
+
 		// Gamepad right-stick crosshair
 		this.gamepadCrosshair = this.add.graphics();
 
@@ -408,11 +423,13 @@ export class GameScene extends Phaser.Scene {
 			gx < 0 ||
 			gx >= this.grid[0].length
 		) {
+			this.hoverTooltip.setVisible(false);
 			return;
 		}
 
 		// Don't highlight Air blocks
 		if (this.grid[gy][gx] === BlockType.Air) {
+			this.hoverTooltip.setVisible(false);
 			return;
 		}
 
@@ -422,6 +439,7 @@ export class GameScene extends Phaser.Scene {
 		const dx = Math.abs(playerGx - gx);
 		const dy = Math.abs(playerGy - gy);
 		if (dx > BLOCK_INTERACT_RANGE || dy > BLOCK_INTERACT_RANGE) {
+			this.hoverTooltip.setVisible(false);
 			return;
 		}
 
@@ -437,6 +455,15 @@ export class GameScene extends Phaser.Scene {
 			TILE_SIZE,
 			TILE_SIZE,
 		);
+
+		// Show block name tooltip at pointer
+		const blockName = BLOCK_NAMES[this.grid[gy][gx]];
+		this.hoverTooltip.setText(blockName);
+		this.hoverTooltip.setPosition(
+			pointer.x,
+			pointer.y + HOVER_TOOLTIP_OFFSET_Y,
+		);
+		this.hoverTooltip.setVisible(true);
 	};
 
 	update(_time: number, delta: number): void {

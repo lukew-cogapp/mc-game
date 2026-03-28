@@ -74,7 +74,6 @@ import {
 	TITLE_PARTICLE_RADIUS,
 	TITLE_PLATFORM_OFFSET_Y,
 	TITLE_PREVIEW_HAT_OFFSET_Y,
-	TITLE_PREVIEW_HEAD_OFFSET_Y,
 	TITLE_PREVIEW_HEAD_RADIUS,
 	TITLE_PREVIEW_SCALE,
 	TITLE_RESET_BTN_FONT_SIZE,
@@ -395,7 +394,7 @@ export class TitleScene extends Phaser.Scene {
 		);
 		const bodyHalfH = (PLAYER_HEIGHT * TITLE_PREVIEW_SCALE) / 2;
 		const headRadius = TITLE_PREVIEW_HEAD_RADIUS;
-		const headY = charY - bodyHalfH - headRadius - TITLE_PREVIEW_HEAD_OFFSET_Y;
+		const headY = charY - bodyHalfH - headRadius - 4;
 		this.previewHead = this.add.circle(
 			leftPanelX,
 			headY,
@@ -411,7 +410,7 @@ export class TitleScene extends Phaser.Scene {
 		this.previewFaceGfx = this.add.graphics();
 		this.previewFaceGfx.setPosition(leftPanelX, headY);
 		this.previewTrail = this.add
-			.text(leftPanelX, charY + bodyHalfH + TITLE_PREVIEW_HEAD_OFFSET_Y, "", {
+			.text(leftPanelX, charY + bodyHalfH + 8, "", {
 				fontSize: "14px",
 			})
 			.setResolution(TEXT_RESOLUTION)

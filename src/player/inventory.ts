@@ -18,7 +18,7 @@ import {
 } from "../config";
 import { BlockType, type InventorySlot } from "../types";
 
-const BLOCK_NAMES: Record<BlockType, string> = {
+export const BLOCK_NAMES: Record<BlockType, string> = {
 	[BlockType.Air]: "Air",
 	[BlockType.Dirt]: "Dirt",
 	[BlockType.Grass]: "Grass",
@@ -130,7 +130,7 @@ export class InventoryBar {
 			startY + INVENTORY_BAR_HEIGHT / 2,
 			totalWidth + 24,
 			INVENTORY_BAR_HEIGHT + 8,
-			0x111122,
+			0x1a1a33,
 			0.85,
 		);
 		this.container.add(bg);
@@ -159,7 +159,7 @@ export class InventoryBar {
 				y + INVENTORY_SLOT_SIZE / 2,
 				INVENTORY_SLOT_SIZE,
 				INVENTORY_SLOT_SIZE,
-				isSelected ? 0x444466 : 0x222233,
+				isSelected ? 0x555577 : 0x333344,
 			);
 			this.container.add(slotBg);
 

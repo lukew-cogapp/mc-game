@@ -10,6 +10,12 @@ import {
 import { BlockType } from "../types";
 import { CUSTOM_TEXTURE_BLOCKS, drawPixelArtTexture } from "./block-textures";
 
+const blockSpriteMap = new Map<string, Phaser.GameObjects.Sprite>();
+
+export const clearBlockSpriteMap = (): void => {
+	blockSpriteMap.clear();
+};
+
 const BLOCK_COLOR_MAP: Record<BlockType, number | null> = {
 	[BlockType.Air]: null,
 	[BlockType.Dirt]: COLORS.dirt,
@@ -79,6 +85,7 @@ export const renderWorld = (
 			sprite.setData("gridY", y);
 			sprite.setData("blockType", blockType);
 			blockGroup.add(sprite);
+			blockSpriteMap.set(`${x},${y}`, sprite);
 
 			const belowY = y + 1;
 			if (belowY < WORLD_HEIGHT_TILES && grid[belowY][x] === BlockType.Air) {
@@ -112,6 +119,7 @@ export const addBlockSprite = (
 	sprite.setData("gridY", gridY);
 	sprite.setData("blockType", blockType);
 	blockGroup.add(sprite);
+	blockSpriteMap.set(`${gridX},${gridY}`, sprite);
 	return sprite;
 };
 
@@ -120,15 +128,11 @@ export const removeBlockSprite = (
 	gridX: number,
 	gridY: number,
 ): void => {
-	const sprite = blockGroup
-		.getChildren()
-		.find(
-			(child) =>
-				(child as Phaser.GameObjects.Sprite).getData("gridX") === gridX &&
-				(child as Phaser.GameObjects.Sprite).getData("gridY") === gridY,
-		) as Phaser.GameObjects.Sprite | undefined;
+	const key = `${gridX},${gridY}`;
+	const sprite = blockSpriteMap.get(key);
 
 	if (sprite) {
 		blockGroup.remove(sprite, true, true);
+		blockSpriteMap.delete(key);
 	}
 };

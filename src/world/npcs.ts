@@ -163,6 +163,8 @@ const buildBubbleContent = (
 export class Npc extends Phaser.GameObjects.Container {
 	private dialogueLines: string[];
 	private bubble: Phaser.GameObjects.Container | null = null;
+	private bubbleBg: Phaser.GameObjects.Graphics | null = null;
+	private bubbleText: Phaser.GameObjects.Text | null = null;
 	private dialogueIndex = 0;
 	private dialogueTimer = 0;
 	private fadeTween: Phaser.Tweens.Tween | null = null;
@@ -258,6 +260,8 @@ export class Npc extends Phaser.GameObjects.Container {
 			this.alive = false;
 			this.bubble?.destroy();
 			this.bubble = null;
+			this.bubbleBg = null;
+			this.bubbleText = null;
 			this.destroy();
 			return `${this.npcName} fell into the lava!`;
 		}
@@ -296,6 +300,8 @@ export class Npc extends Phaser.GameObjects.Container {
 					onComplete: () => {
 						this.bubble?.destroy();
 						this.bubble = null;
+						this.bubbleBg = null;
+						this.bubbleText = null;
 						this.fadeTween = null;
 					},
 				});
@@ -308,6 +314,9 @@ export class Npc extends Phaser.GameObjects.Container {
 	private createBubble = (): void => {
 		const text = this.dialogueLines[this.dialogueIndex];
 		const { bg, textObj, bubbleHeight } = buildBubbleContent(this.scene, text);
+
+		this.bubbleBg = bg;
+		this.bubbleText = textObj;
 
 		this.bubble = this.scene.add.container(
 			this.x,
@@ -328,16 +337,57 @@ export class Npc extends Phaser.GameObjects.Container {
 	private updateBubbleText = (): void => {
 		if (!this.bubble) return;
 
-		this.bubble.removeAll(true);
+		const newText = this.dialogueLines[this.dialogueIndex];
 
-		const text = this.dialogueLines[this.dialogueIndex];
-		const { bg, textObj, bubbleHeight } = buildBubbleContent(this.scene, text);
+		if (this.bubbleBg && this.bubbleText) {
+			// Reuse existing objects — update text and redraw background
+			this.bubbleText.setText(newText);
 
-		this.bubble.add([bg, textObj]);
-		this.bubble.setPosition(
-			this.x,
-			this.y - NPC_BUBBLE_OFFSET_Y - bubbleHeight / 2,
-		);
+			const bubbleWidth =
+				Math.min(this.bubbleText.width, NPC_BUBBLE_MAX_WIDTH) +
+				NPC_BUBBLE_PADDING_X * 2;
+			const bubbleHeight = this.bubbleText.height + NPC_BUBBLE_PADDING_Y * 2;
+
+			this.bubbleBg.clear();
+			this.bubbleBg.fillStyle(NPC_BUBBLE_BG_COLOR, NPC_BUBBLE_ALPHA);
+			this.bubbleBg.fillRoundedRect(
+				-bubbleWidth / 2,
+				-bubbleHeight / 2,
+				bubbleWidth,
+				bubbleHeight,
+				NPC_BUBBLE_CORNER_RADIUS,
+			);
+			this.bubbleBg.fillTriangle(
+				-NPC_BUBBLE_POINTER_SIZE,
+				bubbleHeight / 2,
+				NPC_BUBBLE_POINTER_SIZE,
+				bubbleHeight / 2,
+				0,
+				bubbleHeight / 2 + NPC_BUBBLE_POINTER_SIZE,
+			);
+
+			this.bubbleText.setPosition(0, 0);
+			this.bubble.setPosition(
+				this.x,
+				this.y - NPC_BUBBLE_OFFSET_Y - bubbleHeight / 2,
+			);
+		} else {
+			// First time or objects missing — recreate
+			this.bubble.removeAll(true);
+
+			const { bg, textObj, bubbleHeight } = buildBubbleContent(
+				this.scene,
+				newText,
+			);
+
+			this.bubbleBg = bg;
+			this.bubbleText = textObj;
+			this.bubble.add([bg, textObj]);
+			this.bubble.setPosition(
+				this.x,
+				this.y - NPC_BUBBLE_OFFSET_Y - bubbleHeight / 2,
+			);
+		}
 	};
 
 	private syncBubblePosition = (): void => {

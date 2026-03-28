@@ -4,7 +4,7 @@ import {
 	WORLD_HEIGHT_TILES,
 	WORLD_WIDTH_TILES,
 } from "../config";
-import { BlockType, NON_SOLID_BLOCKS } from "../types";
+import { BlockType } from "../types";
 import { addBlockSprite, removeBlockSprite } from "./world-renderer";
 
 /** Block types that fall when unsupported (air below). */
@@ -35,8 +35,7 @@ export const updateWater = (
 			if (!GRAVITY_BLOCKS.has(block)) continue;
 
 			// Evaporate water/items that reach the lava
-			const worldY = y * TILE_SIZE;
-			if (worldY >= lavaY) {
+			if (y >= Math.floor(lavaY / TILE_SIZE)) {
 				grid[y][x] = BlockType.Air;
 				removeBlockSprite(blockGroup, x, y);
 				continue;
