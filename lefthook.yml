@@ -9,4 +9,4 @@ pre-commit:
       run: npx tsc --noEmit
 
     - name: test
-      run: npx vitest run --passWithNoTests
+      run: npx vitest run

@@ -6,22 +6,27 @@ import {
 import {
 	HIGH_SCORES_MAX,
 	VICTORY_BG_COLOR,
+	VICTORY_HIGH_SCORE_COLOR,
 	VICTORY_HIGH_SCORE_FADE_DELAY,
 	VICTORY_HIGH_SCORE_FONT_SIZE,
 	VICTORY_HIGH_SCORE_OFFSET_Y,
 	VICTORY_INPUT_DELAY,
 	VICTORY_LEADERBOARD_FADE_DELAY,
 	VICTORY_LEADERBOARD_FONT_SIZE,
+	VICTORY_LEADERBOARD_HEADER_COLOR,
 	VICTORY_LEADERBOARD_OFFSET_Y,
 	VICTORY_LEADERBOARD_ROW_HEIGHT,
 	VICTORY_OVERLAY_ALPHA,
 	VICTORY_OVERLAY_COLOR,
+	VICTORY_PROMPT_COLOR,
 	VICTORY_PROMPT_FADE_DELAY,
 	VICTORY_PROMPT_FADE_DURATION,
 	VICTORY_PROMPT_FONT_SIZE,
 	VICTORY_PROMPT_OFFSET_Y,
 	VICTORY_PROMPT_PULSE_ALPHA,
 	VICTORY_PROMPT_PULSE_DURATION,
+	VICTORY_SCORE_COLOR,
+	VICTORY_SCORE_HIGHLIGHT_COLOR,
 	VICTORY_SPARKLE_ALPHA_MIN,
 	VICTORY_SPARKLE_ALPHA_RANGE,
 	VICTORY_SPARKLE_COLOR,
@@ -32,14 +37,17 @@ import {
 	VICTORY_SPARKLE_DURATION_MIN,
 	VICTORY_SPARKLE_DURATION_RANGE,
 	VICTORY_SPARKLE_RADIUS,
+	VICTORY_SUBTITLE_COLOR,
 	VICTORY_SUBTITLE_FADE_DELAY,
 	VICTORY_SUBTITLE_FADE_DURATION,
 	VICTORY_SUBTITLE_FONT_SIZE,
 	VICTORY_SUBTITLE_OFFSET_Y,
+	VICTORY_TIME_COLOR,
 	VICTORY_TIME_FADE_DELAY,
 	VICTORY_TIME_FADE_DURATION,
 	VICTORY_TIME_FONT_SIZE,
 	VICTORY_TIME_OFFSET_Y,
+	VICTORY_TITLE_COLOR,
 	VICTORY_TITLE_FADE_DURATION,
 	VICTORY_TITLE_FONT_SIZE,
 	VICTORY_TITLE_OFFSET_Y,
@@ -79,7 +87,7 @@ export class VictoryScene extends Phaser.Scene {
 		const title = this.add
 			.text(cx, cy + VICTORY_TITLE_OFFSET_Y, "YOU REACHED THE SKY!", {
 				fontSize: VICTORY_TITLE_FONT_SIZE,
-				color: "#ffd700",
+				color: VICTORY_TITLE_COLOR,
 				fontStyle: "bold",
 			})
 			.setOrigin(0.5)
@@ -101,7 +109,7 @@ export class VictoryScene extends Phaser.Scene {
 		const timeLabel = this.add
 			.text(cx, cy + VICTORY_TIME_OFFSET_Y, `Time: ${timeStr}`, {
 				fontSize: VICTORY_TIME_FONT_SIZE,
-				color: "#ffffff",
+				color: VICTORY_TIME_COLOR,
 			})
 			.setOrigin(0.5)
 			.setAlpha(0);
@@ -121,7 +129,7 @@ export class VictoryScene extends Phaser.Scene {
 				"You escaped the rising lava!",
 				{
 					fontSize: VICTORY_SUBTITLE_FONT_SIZE,
-					color: "#ccaa44",
+					color: VICTORY_SUBTITLE_COLOR,
 				},
 			)
 			.setOrigin(0.5)
@@ -145,7 +153,7 @@ export class VictoryScene extends Phaser.Scene {
 					`NEW HIGH SCORE! #${position}`,
 					{
 						fontSize: VICTORY_HIGH_SCORE_FONT_SIZE,
-						color: "#ffd700",
+						color: VICTORY_HIGH_SCORE_COLOR,
 						fontStyle: "bold",
 					},
 				)
@@ -167,7 +175,7 @@ export class VictoryScene extends Phaser.Scene {
 		const lbHeader = this.add
 			.text(cx, leaderboardTop, "TOP TIMES", {
 				fontSize: VICTORY_LEADERBOARD_FONT_SIZE,
-				color: "#ffdd44",
+				color: VICTORY_LEADERBOARD_HEADER_COLOR,
 				fontStyle: "bold",
 			})
 			.setOrigin(0.5)
@@ -187,7 +195,9 @@ export class VictoryScene extends Phaser.Scene {
 				? `#${i + 1}  ${formatTimeMs(entry.timeMs)}`
 				: `#${i + 1}  ---`;
 			const isCurrentScore = position !== null && i === position - 1;
-			const color = isCurrentScore ? "#ffd700" : "#aaaaaa";
+			const color = isCurrentScore
+				? VICTORY_SCORE_HIGHLIGHT_COLOR
+				: VICTORY_SCORE_COLOR;
 
 			const row = this.add
 				.text(cx, rowY, text, {
@@ -214,7 +224,7 @@ export class VictoryScene extends Phaser.Scene {
 				"Press any key or button to continue",
 				{
 					fontSize: VICTORY_PROMPT_FONT_SIZE,
-					color: "#888866",
+					color: VICTORY_PROMPT_COLOR,
 				},
 			)
 			.setOrigin(0.5)

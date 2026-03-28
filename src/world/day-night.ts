@@ -1,6 +1,10 @@
 import {
 	DAY_NIGHT_CYCLE_MS,
+	DAY_NIGHT_DAY_COLOR,
+	DAY_NIGHT_NIGHT_COLOR,
 	DAY_NIGHT_OVERLAY_MAX_ALPHA,
+	DAY_NIGHT_TEXT_BG_COLOR,
+	DAY_NIGHT_TEXT_COLOR,
 	DAY_NIGHT_VISION_EDGE_STEPS,
 	DAY_NIGHT_VISION_EDGE_WIDTH,
 	DAY_SKY_COLOR,
@@ -74,8 +78,8 @@ export const createDayNight = (scene: Phaser.Scene): DayNightCycle => {
 	// Time indicator (HUD)
 	const timeIndicator = scene.add.text(10, 30, "", {
 		fontSize: "12px",
-		color: "#ffffff",
-		backgroundColor: "#00000088",
+		color: DAY_NIGHT_TEXT_COLOR,
+		backgroundColor: DAY_NIGHT_TEXT_BG_COLOR,
 		padding: { x: 4, y: 2 },
 	});
 	timeIndicator.setScrollFactor(0);
@@ -125,5 +129,7 @@ export const updateDayNight = (
 	cycle.timeIndicator.setText(`${timeLabel} (cycle ${cycleNum})`);
 
 	// Tint the indicator based on time
-	cycle.timeIndicator.setColor(isDay ? "#ffdd44" : "#8888ff");
+	cycle.timeIndicator.setColor(
+		isDay ? DAY_NIGHT_DAY_COLOR : DAY_NIGHT_NIGHT_COLOR,
+	);
 };

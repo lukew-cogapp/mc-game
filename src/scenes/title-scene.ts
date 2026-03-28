@@ -33,17 +33,28 @@ import {
 	TITLE_CONTROLS_BACKDROP_ALPHA,
 	TITLE_CONTROLS_CARD_H,
 	TITLE_CONTROLS_CARD_W,
+	TITLE_CONTROLS_CLOSE_COLOR,
+	TITLE_CONTROLS_DESC_COLOR,
 	TITLE_CONTROLS_DESC_OFFSET_X,
+	TITLE_CONTROLS_HEADER_COLOR,
 	TITLE_CONTROLS_KEY_OFFSET_X,
 	TITLE_CONTROLS_OVERLAY_DEPTH,
 	TITLE_CONTROLS_ROW_HEIGHT,
 	TITLE_CONTROLS_START_OFFSET_Y,
+	TITLE_DICE_BG_COLOR,
+	TITLE_DICE_COLOR,
+	TITLE_DICE_HOVER_COLOR,
 	TITLE_DICE_OFFSET_Y,
+	TITLE_GAMEPAD_CONNECTED_COLOR,
 	TITLE_GLOW_ALPHA,
+	TITLE_GLOW_COLOR,
+	TITLE_HINT_COLOR,
+	TITLE_HOVER_COLOR,
 	TITLE_IDLE_BOUNCE_DURATION,
 	TITLE_IDLE_BOUNCE_Y,
 	TITLE_LEFT_PANEL_OFFSET_X,
 	TITLE_LEFT_PANEL_W,
+	TITLE_NAME_COLOR,
 	TITLE_NAME_OFFSET_Y,
 	TITLE_PANEL_ALPHA,
 	TITLE_PANEL_BG,
@@ -68,9 +79,17 @@ import {
 	TITLE_PREVIEW_SCALE,
 	TITLE_RESET_BTN_FONT_SIZE,
 	TITLE_RESET_BTN_OFFSET_Y,
+	TITLE_RESET_COLOR,
+	TITLE_RESET_CONFIRM_COLOR,
+	TITLE_RESET_CONFIRM_HOVER_COLOR,
+	TITLE_RESET_HOVER_COLOR,
 	TITLE_RIGHT_PANEL_OFFSET_X,
 	TITLE_RIGHT_PANEL_W,
+	TITLE_SCORE_COLOR,
+	TITLE_SCORE_GOLD_COLOR,
+	TITLE_SCORES_EMPTY_COLOR,
 	TITLE_SCORES_EMPTY_FONT_SIZE,
+	TITLE_SCORES_HEADER_COLOR,
 	TITLE_SCORES_HEADER_FONT_SIZE,
 	TITLE_SCORES_OFFSET_Y,
 	TITLE_SCORES_ROW_FONT_SIZE,
@@ -89,6 +108,8 @@ import {
 	TITLE_START_GLOW_COLOR,
 	TITLE_START_GLOW_H,
 	TITLE_START_GLOW_W,
+	TITLE_START_LABEL_COLOR,
+	TITLE_SUBTITLE_COLOR,
 	TITLE_SUBTITLE_Y,
 	TITLE_TAB_ACTIVE_ALPHA,
 	TITLE_TAB_ACTIVE_COLOR,
@@ -100,6 +121,10 @@ import {
 	TITLE_TAB_INACTIVE_ALPHA,
 	TITLE_TAB_INACTIVE_COLOR,
 	TITLE_TAB_OFFSET_Y,
+	TITLE_TEXT_COLOR,
+	TITLE_TEXT_SHADOW_COLOR,
+	TITLE_TOGGLE_OFF_COLOR,
+	TITLE_TOGGLE_ON_COLOR,
 	TITLE_Y,
 	TRAIL_TYPES,
 } from "../config";
@@ -316,7 +341,7 @@ export class TitleScene extends Phaser.Scene {
 				"DRIFT LANDS",
 				{
 					fontSize: "52px",
-					color: "#000000",
+					color: TITLE_TEXT_SHADOW_COLOR,
 					fontStyle: "bold",
 				},
 			)
@@ -325,7 +350,7 @@ export class TitleScene extends Phaser.Scene {
 		this.add
 			.text(cx, TITLE_Y, "DRIFT LANDS", {
 				fontSize: "52px",
-				color: "#ffffff",
+				color: TITLE_TEXT_COLOR,
 				fontStyle: "bold",
 			})
 			.setOrigin(0.5);
@@ -333,7 +358,7 @@ export class TitleScene extends Phaser.Scene {
 		const titleGlow = this.add
 			.text(cx, TITLE_Y, "DRIFT LANDS", {
 				fontSize: "52px",
-				color: "#4488cc",
+				color: TITLE_GLOW_COLOR,
 				fontStyle: "bold",
 			})
 			.setOrigin(0.5)
@@ -343,7 +368,7 @@ export class TitleScene extends Phaser.Scene {
 		this.add
 			.text(cx, TITLE_SUBTITLE_Y, "Reach the sky before the lava rises", {
 				fontSize: "14px",
-				color: "#99ddff",
+				color: TITLE_SUBTITLE_COLOR,
 			})
 			.setOrigin(0.5);
 
@@ -432,7 +457,7 @@ export class TitleScene extends Phaser.Scene {
 		this.nameLabel = this.add
 			.text(leftPanelX, panelTop + panelH - TITLE_NAME_OFFSET_Y, "", {
 				fontSize: "14px",
-				color: "#ffee66",
+				color: TITLE_NAME_COLOR,
 				fontStyle: "italic",
 			})
 			.setOrigin(0.5);
@@ -445,15 +470,15 @@ export class TitleScene extends Phaser.Scene {
 				"\u{1f3b2} Randomize",
 				{
 					fontSize: "14px",
-					color: "#aaaaaa",
-					backgroundColor: "#222255",
+					color: TITLE_DICE_COLOR,
+					backgroundColor: TITLE_DICE_BG_COLOR,
 					padding: { x: 10, y: 4 },
 				},
 			)
 			.setOrigin(0.5)
 			.setInteractive({ useHandCursor: true });
-		diceBtn.on("pointerover", () => diceBtn.setColor("#ffdd44"));
-		diceBtn.on("pointerout", () => diceBtn.setColor("#aaaaaa"));
+		diceBtn.on("pointerover", () => diceBtn.setColor(TITLE_DICE_HOVER_COLOR));
+		diceBtn.on("pointerout", () => diceBtn.setColor(TITLE_DICE_COLOR));
 		diceBtn.on("pointerdown", () => {
 			this.selected.body = Math.floor(Math.random() * CHARACTER_COLORS.length);
 			this.selected.skin = Math.floor(Math.random() * SKIN_COLORS.length);
@@ -607,7 +632,7 @@ export class TitleScene extends Phaser.Scene {
 		const startLabel = this.add
 			.text(cx, bottomY, "\u25b6  PLAY", {
 				fontSize: "30px",
-				color: "#ffffff",
+				color: TITLE_START_LABEL_COLOR,
 				fontStyle: "bold",
 			})
 			.setOrigin(0.5);
@@ -660,7 +685,7 @@ export class TitleScene extends Phaser.Scene {
 					"\u{1f3ae} Press any gamepad button to connect",
 					{
 						fontSize: "11px",
-						color: "#555577",
+						color: TITLE_HINT_COLOR,
 					},
 				)
 				.setOrigin(0.5);
@@ -670,9 +695,9 @@ export class TitleScene extends Phaser.Scene {
 				"connected",
 				(pad: Phaser.Input.Gamepad.Gamepad) => {
 					gpHint.setText(`\u{1f3ae} ${pad.id.substring(0, 30)} connected`);
-					gpHint.setColor("#44aa44");
+					gpHint.setColor(TITLE_GAMEPAD_CONNECTED_COLOR);
 					this.time.delayedCall(2000, () => {
-						gpHint.setColor("#555577");
+						gpHint.setColor(TITLE_HINT_COLOR);
 						gpHint.setText("\u{1f3ae} Gamepad ready \u2014 A to start");
 					});
 				},
@@ -701,12 +726,14 @@ export class TitleScene extends Phaser.Scene {
 		const controlsBtn = this.add
 			.text(width - 16, height - 16, "? Controls", {
 				fontSize: "12px",
-				color: "#666688",
+				color: TITLE_HINT_COLOR,
 			})
 			.setOrigin(1, 1)
 			.setInteractive({ useHandCursor: true });
-		controlsBtn.on("pointerover", () => controlsBtn.setColor("#aaaacc"));
-		controlsBtn.on("pointerout", () => controlsBtn.setColor("#666688"));
+		controlsBtn.on("pointerover", () =>
+			controlsBtn.setColor(TITLE_HOVER_COLOR),
+		);
+		controlsBtn.on("pointerout", () => controlsBtn.setColor(TITLE_HINT_COLOR));
 		controlsBtn.on("pointerdown", () => this.toggleControls());
 
 		// Audio settings toggles (bottom-left)
@@ -1004,7 +1031,7 @@ export class TitleScene extends Phaser.Scene {
 		const headerText = this.add
 			.text(cx, cy - cardH / 2 + 24, "CONTROLS", {
 				fontSize: "16px",
-				color: "#ffffff",
+				color: TITLE_CONTROLS_HEADER_COLOR,
 				fontStyle: "bold",
 			})
 			.setOrigin(0.5);
@@ -1042,7 +1069,7 @@ export class TitleScene extends Phaser.Scene {
 					desc ?? "",
 					{
 						fontSize: "13px",
-						color: "#cccccc",
+						color: TITLE_CONTROLS_DESC_COLOR,
 					},
 				)
 				.setOrigin(0, 0.5);
@@ -1052,7 +1079,7 @@ export class TitleScene extends Phaser.Scene {
 		const closeText = this.add
 			.text(cx, cy + cardH / 2 - 20, "Click anywhere to close", {
 				fontSize: "11px",
-				color: "#666688",
+				color: TITLE_CONTROLS_CLOSE_COLOR,
 			})
 			.setOrigin(0.5);
 		this.controlsOverlay.add(closeText);
@@ -1145,7 +1172,10 @@ export class TitleScene extends Phaser.Scene {
 					x,
 					y - yOffset,
 					`${enabled ? "\u{1f50a}" : "\u{1f507}"} ${label}: ${enabled ? "ON" : "OFF"}`,
-					{ fontSize: "12px", color: enabled ? "#88cc88" : "#888888" },
+					{
+						fontSize: "12px",
+						color: enabled ? TITLE_TOGGLE_ON_COLOR : TITLE_TOGGLE_OFF_COLOR,
+					},
 				)
 				.setOrigin(0, 1)
 				.setInteractive({ useHandCursor: true });
@@ -1156,12 +1186,12 @@ export class TitleScene extends Phaser.Scene {
 				text.setText(
 					`${newVal ? "\u{1f50a}" : "\u{1f507}"} ${label}: ${newVal ? "ON" : "OFF"}`,
 				);
-				text.setColor(newVal ? "#88cc88" : "#888888");
+				text.setColor(newVal ? TITLE_TOGGLE_ON_COLOR : TITLE_TOGGLE_OFF_COLOR);
 				enabled = newVal;
 			});
-			text.on("pointerover", () => text.setColor("#ffffff"));
+			text.on("pointerover", () => text.setColor(TITLE_TEXT_COLOR));
 			text.on("pointerout", () =>
-				text.setColor(enabled ? "#88cc88" : "#888888"),
+				text.setColor(enabled ? TITLE_TOGGLE_ON_COLOR : TITLE_TOGGLE_OFF_COLOR),
 			);
 		};
 
@@ -1182,7 +1212,7 @@ export class TitleScene extends Phaser.Scene {
 		this.add
 			.text(cx, topY, "HIGH SCORES", {
 				fontSize: TITLE_SCORES_HEADER_FONT_SIZE,
-				color: "#ffdd44",
+				color: TITLE_SCORES_HEADER_COLOR,
 				fontStyle: "bold",
 			})
 			.setOrigin(0.5);
@@ -1191,7 +1221,7 @@ export class TitleScene extends Phaser.Scene {
 			this.add
 				.text(cx, topY + TITLE_SCORES_ROW_HEIGHT, "No scores yet", {
 					fontSize: TITLE_SCORES_EMPTY_FONT_SIZE,
-					color: "#666688",
+					color: TITLE_SCORES_EMPTY_COLOR,
 					fontStyle: "italic",
 				})
 				.setOrigin(0.5);
@@ -1202,7 +1232,7 @@ export class TitleScene extends Phaser.Scene {
 				this.add
 					.text(cx, rowY, `#${i + 1}  ${formatTimeMs(entry.timeMs)}`, {
 						fontSize: TITLE_SCORES_ROW_FONT_SIZE,
-						color: i === 0 ? "#ffd700" : "#aaaaaa",
+						color: i === 0 ? TITLE_SCORE_GOLD_COLOR : TITLE_SCORE_COLOR,
 					})
 					.setOrigin(0.5);
 			}
@@ -1220,7 +1250,7 @@ export class TitleScene extends Phaser.Scene {
 		const resetBtn = this.add
 			.text(cx, resetY, "Reset Scores", {
 				fontSize: TITLE_RESET_BTN_FONT_SIZE,
-				color: "#555577",
+				color: TITLE_RESET_COLOR,
 			})
 			.setOrigin(0.5)
 			.setInteractive({ useHandCursor: true });
@@ -1229,14 +1259,20 @@ export class TitleScene extends Phaser.Scene {
 			confirmPending = false;
 			confirmTimer = null;
 			resetBtn.setText("Reset Scores");
-			resetBtn.setColor("#555577");
+			resetBtn.setColor(TITLE_RESET_COLOR);
 		};
 
 		resetBtn.on("pointerover", () => {
-			resetBtn.setColor(confirmPending ? "#ff6666" : "#aaaacc");
+			resetBtn.setColor(
+				confirmPending
+					? TITLE_RESET_CONFIRM_HOVER_COLOR
+					: TITLE_RESET_HOVER_COLOR,
+			);
 		});
 		resetBtn.on("pointerout", () => {
-			resetBtn.setColor(confirmPending ? "#ff4444" : "#555577");
+			resetBtn.setColor(
+				confirmPending ? TITLE_RESET_CONFIRM_COLOR : TITLE_RESET_COLOR,
+			);
 		});
 		resetBtn.on("pointerdown", () => {
 			if (confirmPending) {
@@ -1251,7 +1287,7 @@ export class TitleScene extends Phaser.Scene {
 				// First click — ask for confirmation
 				confirmPending = true;
 				resetBtn.setText("Are you sure? Click again");
-				resetBtn.setColor("#ff4444");
+				resetBtn.setColor(TITLE_RESET_CONFIRM_COLOR);
 				confirmTimer = this.time.delayedCall(
 					HIGH_SCORE_RESET_CONFIRM_MS,
 					revertReset,

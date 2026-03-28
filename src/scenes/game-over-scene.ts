@@ -3,13 +3,16 @@ import {
 	GAMEOVER_INPUT_DELAY,
 	GAMEOVER_OVERLAY_ALPHA,
 	GAMEOVER_OVERLAY_COLOR,
+	GAMEOVER_PROMPT_COLOR,
 	GAMEOVER_PROMPT_DELAY,
 	GAMEOVER_PROMPT_FADE_DURATION,
 	GAMEOVER_PROMPT_OFFSET_Y,
 	GAMEOVER_PROMPT_PULSE_ALPHA,
 	GAMEOVER_PROMPT_PULSE_DURATION,
+	GAMEOVER_SUBTITLE_COLOR,
 	GAMEOVER_SUBTITLE_DELAY,
 	GAMEOVER_SUBTITLE_FADE_DURATION,
+	GAMEOVER_TITLE_COLOR,
 	GAMEOVER_TITLE_FADE_DURATION,
 	GAMEOVER_TITLE_OFFSET_Y,
 } from "../config";
@@ -44,7 +47,7 @@ export class GameOverScene extends Phaser.Scene {
 		const title = this.add
 			.text(cx, cy + GAMEOVER_TITLE_OFFSET_Y, "GAME OVER", {
 				fontSize: "64px",
-				color: "#ff4444",
+				color: GAMEOVER_TITLE_COLOR,
 				fontStyle: "bold",
 			})
 			.setOrigin(0.5)
@@ -60,7 +63,7 @@ export class GameOverScene extends Phaser.Scene {
 		const subtitle = this.add
 			.text(cx, cy, "The lava claimed you...", {
 				fontSize: "18px",
-				color: "#cc8888",
+				color: GAMEOVER_SUBTITLE_COLOR,
 			})
 			.setOrigin(0.5)
 			.setAlpha(0);
@@ -79,7 +82,7 @@ export class GameOverScene extends Phaser.Scene {
 				"Press any key or button to continue",
 				{
 					fontSize: "16px",
-					color: "#888888",
+					color: GAMEOVER_PROMPT_COLOR,
 				},
 			)
 			.setOrigin(0.5)

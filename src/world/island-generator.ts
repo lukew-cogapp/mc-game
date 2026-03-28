@@ -67,7 +67,8 @@ import {
 	TREE_TRUNK_MAX,
 	TREE_TRUNK_MIN,
 	WATER_POOL_CHANCE,
-	WATER_POOL_DEPTH,
+	WATER_POOL_DEPTH_MAX,
+	WATER_POOL_DEPTH_MIN,
 	WATER_POOL_WIDTH_MAX,
 	WATER_POOL_WIDTH_MIN,
 	WORLD_HEIGHT_TILES,
@@ -548,7 +549,8 @@ const addWaterPool = (worldGrid: BlockType[][], island: Island): void => {
 		)
 			continue;
 
-		for (let depth = 0; depth < WATER_POOL_DEPTH; depth++) {
+		const poolDepth = randomRange(WATER_POOL_DEPTH_MIN, WATER_POOL_DEPTH_MAX);
+		for (let depth = 0; depth < poolDepth; depth++) {
 			const wy = surfaceY + depth;
 			if (wy < worldGrid.length && worldGrid[wy][wx] !== BlockType.Air) {
 				worldGrid[wy][wx] = BlockType.Water;

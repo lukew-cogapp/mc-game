@@ -59,7 +59,8 @@ export const WATER_SPEED_MULTIPLIER = 0.5;
 export const WATER_ALPHA = 0.6;
 export const WATER_POOL_WIDTH_MIN = 2;
 export const WATER_POOL_WIDTH_MAX = 4;
-export const WATER_POOL_DEPTH = 1;
+export const WATER_POOL_DEPTH_MIN = 1;
+export const WATER_POOL_DEPTH_MAX = 5;
 export const WATER_POOL_CHANCE = 0.3;
 
 // -- Island Shape Variety --
@@ -343,8 +344,8 @@ export const NPC_BUBBLE_PADDING_Y = 6;
 export const NPC_BUBBLE_ALPHA = 0.8;
 export const NPC_BUBBLE_OFFSET_Y = 30;
 export const NPC_BUBBLE_POINTER_SIZE = 6;
-export const NPC_BUBBLE_FONT_SIZE = "11px";
-export const NPC_BUBBLE_MAX_WIDTH = 180;
+export const NPC_BUBBLE_FONT_SIZE = "16px";
+export const NPC_BUBBLE_MAX_WIDTH = 260;
 export const NPC_BUBBLE_FADE_DURATION = 300;
 
 // -- Player Trail Particles --
@@ -377,13 +378,13 @@ export const LEAF_PARTICLE_WOBBLE_AMPLITUDE = 8;
 export const LEAF_PARTICLE_WOBBLE_SPEED = 3;
 
 // -- Music --
-export const MUSIC_VOLUME = 0.15;
-export const MUSIC_BPM = 100;
-export const MUSIC_LEAD_VOLUME = 0.3;
-export const MUSIC_BASS_VOLUME = 0.2;
-export const MUSIC_ATTACK_TIME = 0.02;
-export const MUSIC_DECAY_TIME = 0.05;
-export const MUSIC_SUSTAIN_LEVEL = 0.6;
+export const MUSIC_VOLUME = 0.1;
+export const MUSIC_BPM = 72;
+export const MUSIC_LEAD_VOLUME = 0.2;
+export const MUSIC_BASS_VOLUME = 0.12;
+export const MUSIC_ATTACK_TIME = 0.04;
+export const MUSIC_DECAY_TIME = 0.1;
+export const MUSIC_SUSTAIN_LEVEL = 0.4;
 
 // -- Title Scene Layout --
 export const TITLE_BG_COLOR_TOP = 0x0a0a2e;
@@ -654,3 +655,69 @@ export const TITLE_SCORES_ROW_HEIGHT = 20;
 export const TITLE_SCORES_EMPTY_FONT_SIZE = "13px";
 export const TITLE_RESET_BTN_FONT_SIZE = "11px";
 export const TITLE_RESET_BTN_OFFSET_Y = 14;
+
+// -- Title Scene Text Colors --
+export const TITLE_TEXT_COLOR = "#ffffff";
+export const TITLE_TEXT_SHADOW_COLOR = "#000000";
+export const TITLE_GLOW_COLOR = "#4488cc";
+export const TITLE_SUBTITLE_COLOR = "#99ddff";
+export const TITLE_NAME_COLOR = "#ffee66";
+export const TITLE_HINT_COLOR = "#99aacc";
+export const TITLE_HOVER_COLOR = "#ddddee";
+export const TITLE_DICE_COLOR = "#bbbbcc";
+export const TITLE_DICE_BG_COLOR = "#222255";
+export const TITLE_DICE_HOVER_COLOR = "#ffdd44";
+export const TITLE_TOGGLE_ON_COLOR = "#88cc88";
+export const TITLE_TOGGLE_OFF_COLOR = "#99aacc";
+export const TITLE_SCORE_GOLD_COLOR = "#ffd700";
+export const TITLE_SCORE_COLOR = "#bbbbcc";
+export const TITLE_SCORES_HEADER_COLOR = "#ffdd44";
+export const TITLE_SCORES_EMPTY_COLOR = "#99aacc";
+export const TITLE_RESET_COLOR = "#99aacc";
+export const TITLE_RESET_HOVER_COLOR = "#ddddee";
+export const TITLE_RESET_CONFIRM_COLOR = "#ff4444";
+export const TITLE_RESET_CONFIRM_HOVER_COLOR = "#ff6666";
+export const TITLE_CONTROLS_HEADER_COLOR = "#ffffff";
+export const TITLE_CONTROLS_DESC_COLOR = "#cccccc";
+export const TITLE_CONTROLS_CLOSE_COLOR = "#99aacc";
+export const TITLE_START_LABEL_COLOR = "#ffffff";
+export const TITLE_GAMEPAD_CONNECTED_COLOR = "#44aa44";
+
+// -- Game Over Scene Text Colors --
+export const GAMEOVER_TITLE_COLOR = "#ff4444";
+export const GAMEOVER_SUBTITLE_COLOR = "#cc8888";
+export const GAMEOVER_PROMPT_COLOR = "#bbbbcc";
+
+// -- Victory Scene Text Colors --
+export const VICTORY_TITLE_COLOR = "#ffd700";
+export const VICTORY_TIME_COLOR = "#ffffff";
+export const VICTORY_SUBTITLE_COLOR = "#ccaa44";
+export const VICTORY_HIGH_SCORE_COLOR = "#ffd700";
+export const VICTORY_LEADERBOARD_HEADER_COLOR = "#ffdd44";
+export const VICTORY_SCORE_HIGHLIGHT_COLOR = "#ffd700";
+export const VICTORY_SCORE_COLOR = "#bbbbcc";
+export const VICTORY_PROMPT_COLOR = "#bbbbcc";
+
+// -- Day/Night Text Colors --
+export const DAY_NIGHT_TEXT_COLOR = "#ffffff";
+export const DAY_NIGHT_TEXT_BG_COLOR = "#00000088";
+export const DAY_NIGHT_DAY_COLOR = "#ffdd44";
+export const DAY_NIGHT_NIGHT_COLOR = "#8888ff";
+
+// -- Game Scene HUD Text Colors --
+export const HUD_GLIDE_COLOR = "#ffffff";
+export const HUD_LIVES_COLOR = "#ff4444";
+export const HUD_FRUIT_COLOR = "#ffaa33";
+export const HUD_TIMER_COLOR = "#ffffff";
+export const HUD_LAVA_LABEL_COLOR = "#bbbbcc";
+export const HUD_LIFE_POPUP_COLOR = "#ff4444";
+export const HUD_JETPACK_POPUP_COLOR = "#ff8800";
+
+// -- NPC Text Colors --
+export const NPC_TEXT_COLOR = "#ffffff";
+
+// -- Inventory Text Colors --
+export const INVENTORY_NAME_COLOR = "#ffffff";
+export const INVENTORY_COUNT_SHADOW_COLOR = "#000000";
+export const INVENTORY_COUNT_COLOR = "#ffffff";
+export const INVENTORY_SLOT_NUM_COLOR = "#99aacc";

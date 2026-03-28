@@ -44,19 +44,29 @@ const getFrequency = (note: string): number => NOTE_FREQUENCIES[note] ?? 0;
 // -- Melody definition --
 
 // Lead melody: 4 notes per bar, 8 bars total
+// Chill, spacious melody — lots of rests, gentle arc
 const LEAD_MELODY: (string | null)[][] = [
-	["C4", "E4", "G4", "E4"], // Bar 1
-	["A4", "G4", "E4", "D4"], // Bar 2
-	["C4", "D4", "E4", "G4"], // Bar 3
-	["A4", "G4", null, "E4"], // Bar 4 (null = rest)
-	["G4", "A4", "C5", "A4"], // Bar 5
-	["G4", "E4", "D4", "C4"], // Bar 6
-	["D4", "E4", "G4", "A4"], // Bar 7
-	["G4", "E4", "D4", "C4"], // Bar 8
+	["C4", null, "E4", null], // Bar 1 — gentle start
+	["G4", null, null, "E4"], // Bar 2 — breathe
+	[null, "D4", null, "G4"], // Bar 3 — sparse
+	["A4", null, null, null], // Bar 4 — let it ring
+	[null, "G4", null, "E4"], // Bar 5 — descend
+	["C4", null, "D4", null], // Bar 6 — step up
+	[null, "E4", null, null], // Bar 7 — single note
+	["G4", null, "E4", "C4"], // Bar 8 — resolve
 ];
 
-// Bass: one note per bar
-const BASS_PATTERN: string[] = ["C2", "A2", "C2", "A2", "G2", "E2", "D2", "C2"];
+// Bass: gentle root notes, some bars rest
+const BASS_PATTERN: (string | null)[] = [
+	"C3",
+	null,
+	"A2",
+	null,
+	"G2",
+	null,
+	"F2",
+	"C3",
+];
 
 // -- Types --
 
@@ -82,7 +92,7 @@ const scheduleNote = (
 	const oscillator = context.createOscillator();
 	const envelope = context.createGain();
 
-	oscillator.type = "square";
+	oscillator.type = "triangle";
 	oscillator.frequency.setValueAtTime(frequency, time);
 
 	// Attack-decay-sustain envelope
@@ -141,16 +151,18 @@ const scheduleBeats = (music: MusicPlayer): void => {
 		// Bass: one note per bar, play on first beat
 		if (noteInBar === 0) {
 			const bassNote = BASS_PATTERN[barIndex];
-			const bassFreq = getFrequency(bassNote);
-			if (bassFreq > 0) {
-				scheduleNote(
-					music.context,
-					music.masterGain,
-					bassFreq,
-					music.nextNoteTime,
-					secondsPerBeat * BEATS_PER_BAR * 0.9,
-					MUSIC_BASS_VOLUME,
-				);
+			if (bassNote !== null && bassNote !== undefined) {
+				const bassFreq = getFrequency(bassNote);
+				if (bassFreq > 0) {
+					scheduleNote(
+						music.context,
+						music.masterGain,
+						bassFreq,
+						music.nextNoteTime,
+						secondsPerBeat * BEATS_PER_BAR * 0.9,
+						MUSIC_BASS_VOLUME,
+					);
+				}
 			}
 		}
 

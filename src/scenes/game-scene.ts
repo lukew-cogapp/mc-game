@@ -56,16 +56,23 @@ import {
 	HUD_BORDER_ALPHA,
 	HUD_BORDER_RADIUS,
 	HUD_DEPTH,
+	HUD_FRUIT_COLOR,
 	HUD_FRUIT_Y,
+	HUD_GLIDE_COLOR,
 	HUD_GLIDE_X,
 	HUD_GLIDE_Y,
+	HUD_JETPACK_POPUP_COLOR,
+	HUD_LAVA_LABEL_COLOR,
 	HUD_LEFT_H,
 	HUD_LEFT_W,
 	HUD_LEFT_X,
+	HUD_LIFE_POPUP_COLOR,
+	HUD_LIVES_COLOR,
 	HUD_LIVES_OFFSET_X,
 	HUD_LIVES_Y,
 	HUD_RIGHT_H,
 	HUD_RIGHT_W,
+	HUD_TIMER_COLOR,
 	INVENTORY_SLOTS,
 	JETPACK_COLOR,
 	JETPACK_FUEL_MS,
@@ -389,7 +396,7 @@ export class GameScene extends Phaser.Scene {
 
 		this.glideIndicator = this.add.text(HUD_GLIDE_X, HUD_GLIDE_Y, "", {
 			fontSize: "16px",
-			color: "#ffffff",
+			color: HUD_GLIDE_COLOR,
 			fontStyle: "bold",
 		});
 		this.glideIndicator.setResolution(2);
@@ -423,7 +430,7 @@ export class GameScene extends Phaser.Scene {
 
 		this.livesText = this.add.text(camW - HUD_LIVES_OFFSET_X, HUD_LIVES_Y, "", {
 			fontSize: "22px",
-			color: "#ff4444",
+			color: HUD_LIVES_COLOR,
 		});
 		this.livesText.setResolution(2);
 		this.livesText.setOrigin(1, 0);
@@ -432,7 +439,7 @@ export class GameScene extends Phaser.Scene {
 
 		this.fruitText = this.add.text(camW - HUD_LIVES_OFFSET_X, HUD_FRUIT_Y, "", {
 			fontSize: "14px",
-			color: "#ffaa33",
+			color: HUD_FRUIT_COLOR,
 		});
 		this.fruitText.setResolution(2);
 		this.fruitText.setOrigin(1, 0);
@@ -444,7 +451,7 @@ export class GameScene extends Phaser.Scene {
 		// Timer HUD (top center)
 		this.timerText = this.add.text(this.cameras.main.width / 2, 14, "0:00", {
 			fontSize: "18px",
-			color: "#ffffff",
+			color: HUD_TIMER_COLOR,
 			fontStyle: "bold",
 		});
 		this.timerText.setResolution(2);
@@ -462,7 +469,7 @@ export class GameScene extends Phaser.Scene {
 			"",
 			{
 				fontSize: "10px",
-				color: "#aaaacc",
+				color: HUD_LAVA_LABEL_COLOR,
 			},
 		);
 		this.lavaMeterLabel.setResolution(2);
@@ -783,7 +790,7 @@ export class GameScene extends Phaser.Scene {
 					"+1 \u2764\ufe0f",
 					{
 						fontSize: "18px",
-						color: "#ff4444",
+						color: HUD_LIFE_POPUP_COLOR,
 					},
 				);
 				popup.setOrigin(0.5);
@@ -837,7 +844,7 @@ export class GameScene extends Phaser.Scene {
 				"+3s JETPACK",
 				{
 					fontSize: "18px",
-					color: "#ff8800",
+					color: HUD_JETPACK_POPUP_COLOR,
 					fontStyle: "bold",
 				},
 			);

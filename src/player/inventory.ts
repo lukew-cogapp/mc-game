@@ -1,10 +1,14 @@
 import {
 	COLORS,
 	INVENTORY_BAR_HEIGHT,
+	INVENTORY_COUNT_COLOR,
+	INVENTORY_COUNT_SHADOW_COLOR,
 	INVENTORY_COUNT_SIZE,
+	INVENTORY_NAME_COLOR,
 	INVENTORY_NAME_FONT_SIZE,
 	INVENTORY_NAME_OFFSET_Y,
 	INVENTORY_SLOT_GAP,
+	INVENTORY_SLOT_NUM_COLOR,
 	INVENTORY_SLOT_SIZE,
 	INVENTORY_SLOTS,
 	INVENTORY_SWATCH_SIZE,
@@ -110,7 +114,7 @@ export class InventoryBar {
 				BLOCK_NAMES[selectedSlot.blockType],
 				{
 					fontSize: INVENTORY_NAME_FONT_SIZE,
-					color: "#ffffff",
+					color: INVENTORY_NAME_COLOR,
 					align: "center",
 				},
 			);
@@ -198,7 +202,7 @@ export class InventoryBar {
 					`${slot.count}`,
 					{
 						fontSize: INVENTORY_COUNT_SIZE,
-						color: "#000000",
+						color: INVENTORY_COUNT_SHADOW_COLOR,
 						fontStyle: "bold",
 						align: "right",
 					},
@@ -213,7 +217,7 @@ export class InventoryBar {
 					`${slot.count}`,
 					{
 						fontSize: INVENTORY_COUNT_SIZE,
-						color: "#ffffff",
+						color: INVENTORY_COUNT_COLOR,
 						fontStyle: "bold",
 						align: "right",
 					},
@@ -225,7 +229,7 @@ export class InventoryBar {
 			// Slot number — top left
 			const numLabel = this.scene.add.text(x + 4, y + 2, `${i + 1}`, {
 				fontSize: "11px",
-				color: "#666677",
+				color: INVENTORY_SLOT_NUM_COLOR,
 			});
 			this.container.add(numLabel);
 		}

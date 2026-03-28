@@ -26,6 +26,7 @@ import {
 	NPC_HEAD_COLOR,
 	NPC_HEAD_RADIUS,
 	NPC_INTERACT_RANGE,
+	NPC_TEXT_COLOR,
 	TILE_SIZE,
 } from "../config";
 import type { Island } from "../types";
@@ -99,7 +100,7 @@ const buildBubbleContent = (
 } => {
 	const textObj = scene.add.text(0, 0, text, {
 		fontSize: NPC_BUBBLE_FONT_SIZE,
-		color: "#ffffff",
+		color: NPC_TEXT_COLOR,
 		wordWrap: { width: NPC_BUBBLE_MAX_WIDTH - NPC_BUBBLE_PADDING_X * 2 },
 		align: "center",
 	});
