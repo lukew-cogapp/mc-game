@@ -40,25 +40,23 @@ export const BLOCK_NAMES: Record<BlockType, string> = {
 	[BlockType.Jetpack]: "Jetpack",
 };
 
-export class InventoryBar {
-	private scene: Phaser.Scene;
+export class InventoryBar extends Phaser.GameObjects.Container {
 	private slots: InventorySlot[];
 	selectedIndex = 0;
-	private container: Phaser.GameObjects.Container;
 
 	constructor(scene: Phaser.Scene) {
-		this.scene = scene;
+		super(scene, 0, 0);
+		scene.add.existing(this);
+		this.setDepth(UI_DEPTH);
+		this.setScrollFactor(0);
+
 		this.slots = Array.from({ length: INVENTORY_SLOTS }, () => ({
 			blockType: BlockType.Air,
 			count: 0,
 		}));
-
-		this.container = scene.add.container(0, 0);
-		this.container.setDepth(UI_DEPTH);
-		this.container.setScrollFactor(0);
 	}
 
-	add = (blockType: BlockType): boolean => {
+	addBlock = (blockType: BlockType): boolean => {
 		// Find existing slot with same type
 		const existing = this.slots.find(
 			(slot) => slot.blockType === blockType && slot.count > 0,
@@ -98,7 +96,7 @@ export class InventoryBar {
 	};
 
 	render = (): void => {
-		this.container.removeAll(true);
+		this.removeAll(true);
 
 		const totalWidth =
 			INVENTORY_SLOTS * INVENTORY_SLOT_SIZE +
@@ -121,7 +119,7 @@ export class InventoryBar {
 			);
 			nameLabel.setResolution(TEXT_RESOLUTION);
 			nameLabel.setOrigin(0.5);
-			this.container.add(nameLabel);
+			this.add(nameLabel);
 		}
 
 		// Background with rounded feel
@@ -133,7 +131,7 @@ export class InventoryBar {
 			0x1a1a33,
 			0.85,
 		);
-		this.container.add(bg);
+		this.add(bg);
 
 		// Border
 		const bgBorder = this.scene.add.graphics();
@@ -145,7 +143,7 @@ export class InventoryBar {
 			INVENTORY_BAR_HEIGHT + 8,
 			8,
 		);
-		this.container.add(bgBorder);
+		this.add(bgBorder);
 
 		for (let i = 0; i < INVENTORY_SLOTS; i++) {
 			const x = startX + i * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
@@ -161,7 +159,7 @@ export class InventoryBar {
 				INVENTORY_SLOT_SIZE,
 				isSelected ? 0x555577 : 0x333344,
 			);
-			this.container.add(slotBg);
+			this.add(slotBg);
 
 			// Slot border — always visible, brighter when selected
 			const border = this.scene.add.rectangle(
@@ -174,7 +172,7 @@ export class InventoryBar {
 				isSelected ? 3 : 1,
 				isSelected ? COLORS.selected : 0x555566,
 			);
-			this.container.add(border);
+			this.add(border);
 
 			// Selected: scale up slightly
 			if (isSelected) {
@@ -194,7 +192,7 @@ export class InventoryBar {
 					);
 					const scale = INVENTORY_SWATCH_SIZE / TILE_SIZE;
 					preview.setScale(scale);
-					this.container.add(preview);
+					this.add(preview);
 				}
 
 				// Count — bottom right of slot, with shadow for readability
@@ -212,7 +210,7 @@ export class InventoryBar {
 				countShadow.setResolution(TEXT_RESOLUTION);
 				countShadow.setOrigin(1, 1);
 				countShadow.setAlpha(0.5);
-				this.container.add(countShadow);
+				this.add(countShadow);
 
 				const count = this.scene.add.text(
 					x + INVENTORY_SLOT_SIZE - 6,
@@ -227,7 +225,7 @@ export class InventoryBar {
 				);
 				count.setResolution(TEXT_RESOLUTION);
 				count.setOrigin(1, 1);
-				this.container.add(count);
+				this.add(count);
 			}
 
 			// Slot number — top left
@@ -236,7 +234,12 @@ export class InventoryBar {
 				color: INVENTORY_SLOT_NUM_COLOR,
 			});
 			numLabel.setResolution(TEXT_RESOLUTION);
-			this.container.add(numLabel);
+			this.add(numLabel);
 		}
 	};
+
+	destroy(fromScene?: boolean): void {
+		this.removeAll(true);
+		super.destroy(fromScene);
+	}
 }

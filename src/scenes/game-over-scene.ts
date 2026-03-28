@@ -1,12 +1,11 @@
+import type UIPlugin from "phaser3-rex-plugins/templates/ui/ui-plugin.js";
 import {
 	GAMEOVER_BG_COLOR,
 	GAMEOVER_INPUT_DELAY,
 	GAMEOVER_OVERLAY_ALPHA,
 	GAMEOVER_OVERLAY_COLOR,
 	GAMEOVER_PROMPT_COLOR,
-	GAMEOVER_PROMPT_DELAY,
 	GAMEOVER_PROMPT_FADE_DURATION,
-	GAMEOVER_PROMPT_OFFSET_Y,
 	GAMEOVER_PROMPT_PULSE_ALPHA,
 	GAMEOVER_PROMPT_PULSE_DURATION,
 	GAMEOVER_SUBTITLE_COLOR,
@@ -14,11 +13,24 @@ import {
 	GAMEOVER_SUBTITLE_FADE_DURATION,
 	GAMEOVER_TITLE_COLOR,
 	GAMEOVER_TITLE_FADE_DURATION,
-	GAMEOVER_TITLE_OFFSET_Y,
 	TEXT_RESOLUTION,
 } from "../config";
+import { isAnyGamepadButtonDown } from "../input/gamepad-utils";
+
+const TITLE_FONT_SIZE = "64px";
+const SUBTITLE_FONT_SIZE = "18px";
+const PROMPT_FONT_SIZE = "16px";
+const PROMPT_DELAY = 1500;
+const TITLE_BG_RADIUS = 12;
+const TITLE_BG_COLOR = 0x220000;
+const TITLE_BG_ALPHA = 0.6;
+const TITLE_BG_PAD = { left: 32, right: 32, top: 16, bottom: 16 };
+const SIZER_ITEM_SPACING = 20;
+const PROMPT_TOP_PAD = 40;
 
 export class GameOverScene extends Phaser.Scene {
+	declare rexUI: UIPlugin;
+
 	private canAcceptInput = false;
 	private gpButtonWasDown = false;
 
@@ -31,6 +43,7 @@ export class GameOverScene extends Phaser.Scene {
 			this.input.removeAllListeners();
 			if (this.input.keyboard) this.input.keyboard.removeAllListeners();
 		});
+
 		const { width, height } = this.cameras.main;
 		const cx = width / 2;
 		const cy = height / 2;
@@ -40,66 +53,98 @@ export class GameOverScene extends Phaser.Scene {
 
 		this.cameras.main.setBackgroundColor(GAMEOVER_BG_COLOR);
 
-		const overlay = this.add.graphics();
-		overlay.fillStyle(GAMEOVER_OVERLAY_COLOR, GAMEOVER_OVERLAY_ALPHA);
-		overlay.fillRect(0, 0, width, height);
+		// Full-screen overlay using rexUI roundRectangle
+		this.rexUI.add.roundRectangle(
+			cx,
+			cy,
+			width,
+			height,
+			0,
+			GAMEOVER_OVERLAY_COLOR,
+			GAMEOVER_OVERLAY_ALPHA,
+		);
 
-		// GAME OVER text
-		const title = this.add
-			.text(cx, cy + GAMEOVER_TITLE_OFFSET_Y, "GAME OVER", {
-				fontSize: "64px",
+		// Title text with rounded background
+		const titleBg = this.rexUI.add.roundRectangle(
+			0,
+			0,
+			0,
+			0,
+			TITLE_BG_RADIUS,
+			TITLE_BG_COLOR,
+			TITLE_BG_ALPHA,
+		);
+
+		const titleText = this.add
+			.text(0, 0, "GAME OVER", {
+				fontSize: TITLE_FONT_SIZE,
 				color: GAMEOVER_TITLE_COLOR,
 				fontStyle: "bold",
 			})
-			.setResolution(TEXT_RESOLUTION)
-			.setOrigin(0.5)
-			.setAlpha(0);
+			.setResolution(TEXT_RESOLUTION);
 
+		const titleLabel = this.rexUI.add.label({
+			background: titleBg,
+			text: titleText,
+			space: TITLE_BG_PAD,
+			align: "center",
+		});
+
+		// Subtitle
+		const subtitleText = this.add
+			.text(0, 0, "The lava claimed you...", {
+				fontSize: SUBTITLE_FONT_SIZE,
+				color: GAMEOVER_SUBTITLE_COLOR,
+			})
+			.setResolution(TEXT_RESOLUTION);
+
+		// Prompt
+		const promptText = this.add
+			.text(0, 0, "Press any key or button to continue", {
+				fontSize: PROMPT_FONT_SIZE,
+				color: GAMEOVER_PROMPT_COLOR,
+			})
+			.setResolution(TEXT_RESOLUTION);
+
+		// Vertical sizer layout
+		this.rexUI.add
+			.sizer({
+				x: cx,
+				y: cy,
+				orientation: "vertical",
+				space: { item: SIZER_ITEM_SPACING },
+			})
+			.add(titleLabel, { align: "center" })
+			.add(subtitleText, { align: "center" })
+			.add(promptText, { align: "center", padding: { top: PROMPT_TOP_PAD } })
+			.layout();
+
+		// Fade-in tweens
+		titleLabel.setAlpha(0);
 		this.tweens.add({
-			targets: title,
+			targets: titleLabel,
 			alpha: 1,
 			duration: GAMEOVER_TITLE_FADE_DURATION,
 			ease: "Power2",
 		});
 
-		const subtitle = this.add
-			.text(cx, cy, "The lava claimed you...", {
-				fontSize: "18px",
-				color: GAMEOVER_SUBTITLE_COLOR,
-			})
-			.setResolution(TEXT_RESOLUTION)
-			.setOrigin(0.5)
-			.setAlpha(0);
-
+		subtitleText.setAlpha(0);
 		this.tweens.add({
-			targets: subtitle,
+			targets: subtitleText,
 			alpha: 1,
 			duration: GAMEOVER_SUBTITLE_FADE_DURATION,
 			delay: GAMEOVER_SUBTITLE_DELAY,
 		});
 
-		const prompt = this.add
-			.text(
-				cx,
-				cy + GAMEOVER_PROMPT_OFFSET_Y,
-				"Press any key or button to continue",
-				{
-					fontSize: "16px",
-					color: GAMEOVER_PROMPT_COLOR,
-				},
-			)
-			.setResolution(TEXT_RESOLUTION)
-			.setOrigin(0.5)
-			.setAlpha(0);
-
+		promptText.setAlpha(0);
 		this.tweens.add({
-			targets: prompt,
+			targets: promptText,
 			alpha: 1,
 			duration: GAMEOVER_PROMPT_FADE_DURATION,
-			delay: GAMEOVER_PROMPT_DELAY,
+			delay: PROMPT_DELAY,
 			onComplete: () => {
 				this.tweens.add({
-					targets: prompt,
+					targets: promptText,
 					alpha: GAMEOVER_PROMPT_PULSE_ALPHA,
 					duration: GAMEOVER_PROMPT_PULSE_DURATION,
 					yoyo: true,
@@ -126,21 +171,7 @@ export class GameOverScene extends Phaser.Scene {
 	update(): void {
 		if (!this.canAcceptInput) return;
 
-		// Poll browser gamepad directly for any button press
-		const pads = navigator.getGamepads?.();
-		if (!pads) return;
-
-		let anyButtonDown = false;
-		for (const pad of pads) {
-			if (!pad?.connected) continue;
-			for (const btn of pad.buttons) {
-				if (btn.pressed) {
-					anyButtonDown = true;
-					break;
-				}
-			}
-			if (anyButtonDown) break;
-		}
+		const anyButtonDown = isAnyGamepadButtonDown();
 
 		// Edge-triggered: only fire on press, not hold
 		if (anyButtonDown && !this.gpButtonWasDown) {

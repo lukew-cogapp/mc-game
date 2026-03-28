@@ -179,7 +179,7 @@ export const handleBlockBreak = (
 		const blockType = grid[gy][gx];
 		grid[gy][gx] = BlockType.Air;
 		removeBlockSprite(blockGroup, gx, gy);
-		inventory.add(blockType);
+		inventory.addBlock(blockType);
 		inventory.render();
 		clearBreaking(interaction);
 	}

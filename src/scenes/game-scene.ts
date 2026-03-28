@@ -87,18 +87,9 @@ import {
 	updateClouds,
 	updateLeafParticles,
 } from "../world/ambient";
-import {
-	createDayNight,
-	type DayNightCycle,
-	updateDayNight,
-} from "../world/day-night";
+import { DayNightCycle } from "../world/day-night";
 import { generateWorld } from "../world/island-generator";
-import {
-	createLava,
-	getLavaY,
-	type LavaLayer,
-	updateLava,
-} from "../world/lava";
+import { Lava } from "../world/lava";
 import { Npc } from "../world/npcs";
 import { drawGoalBeacon, drawSkyGradient } from "../world/sky";
 import { updateWater } from "../world/water-physics";
@@ -130,7 +121,7 @@ export class GameScene extends Phaser.Scene {
 	private spaceKey!: Phaser.Input.Keyboard.Key;
 	private inventory!: InventoryBar;
 	private blockInteraction!: BlockInteraction;
-	private lava!: LavaLayer;
+	private lava!: Lava;
 	private hoverHighlight!: Phaser.GameObjects.Graphics;
 	private hoverTooltip!: Phaser.GameObjects.Text;
 	private toast!: Toast;
@@ -200,7 +191,7 @@ export class GameScene extends Phaser.Scene {
 		this.ambientParticles = createAmbientParticles(this);
 
 		// Lava lake at world bottom
-		this.lava = createLava(this);
+		this.lava = new Lava(this);
 
 		// Lava danger glow (drawn above lava, updated each frame)
 		this.lavaGlowGfx = this.add.graphics();
@@ -366,7 +357,7 @@ export class GameScene extends Phaser.Scene {
 		this.gamepadCrosshair = this.add.graphics();
 
 		// Day/night cycle
-		this.dayNight = createDayNight(this);
+		this.dayNight = new DayNightCycle(this);
 
 		// -- HUD using rexUI --
 		const camW = this.cameras.main.width;
@@ -509,9 +500,8 @@ export class GameScene extends Phaser.Scene {
 	};
 
 	update(_time: number, delta: number): void {
-		// Lava (rises over time)
-		updateLava(this.lava, delta);
-		const lavaY = getLavaY(this.lava);
+		// Lava (rises over time — preUpdate handles animation)
+		const lavaY = this.lava.getY();
 		this.updateLavaGlow(lavaY);
 
 		// Set per-frame properties on Player (preUpdate reads these)
@@ -564,8 +554,9 @@ export class GameScene extends Phaser.Scene {
 		// Hover highlight
 		this.updateHoverHighlight();
 
-		// Day/night cycle
-		updateDayNight(this.dayNight, this, this.player.x, this.player.y, delta);
+		// Day/night cycle (preUpdate handles rendering)
+		this.dayNight.playerX = this.player.x;
+		this.dayNight.playerY = this.player.y;
 
 		// Background clouds parallax
 		updateClouds(this.clouds);

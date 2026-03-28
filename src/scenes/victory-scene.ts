@@ -1,3 +1,4 @@
+import type UIPlugin from "phaser3-rex-plugins/templates/ui/ui-plugin.js";
 import {
 	formatTimeMs,
 	loadHighScores,
@@ -10,20 +11,16 @@ import {
 	VICTORY_HIGH_SCORE_COLOR,
 	VICTORY_HIGH_SCORE_FADE_DELAY,
 	VICTORY_HIGH_SCORE_FONT_SIZE,
-	VICTORY_HIGH_SCORE_OFFSET_Y,
 	VICTORY_INPUT_DELAY,
 	VICTORY_LEADERBOARD_FADE_DELAY,
 	VICTORY_LEADERBOARD_FONT_SIZE,
 	VICTORY_LEADERBOARD_HEADER_COLOR,
-	VICTORY_LEADERBOARD_OFFSET_Y,
-	VICTORY_LEADERBOARD_ROW_HEIGHT,
 	VICTORY_OVERLAY_ALPHA,
 	VICTORY_OVERLAY_COLOR,
 	VICTORY_PROMPT_COLOR,
 	VICTORY_PROMPT_FADE_DELAY,
 	VICTORY_PROMPT_FADE_DURATION,
 	VICTORY_PROMPT_FONT_SIZE,
-	VICTORY_PROMPT_OFFSET_Y,
 	VICTORY_PROMPT_PULSE_ALPHA,
 	VICTORY_PROMPT_PULSE_DURATION,
 	VICTORY_SCORE_COLOR,
@@ -42,20 +39,30 @@ import {
 	VICTORY_SUBTITLE_FADE_DELAY,
 	VICTORY_SUBTITLE_FADE_DURATION,
 	VICTORY_SUBTITLE_FONT_SIZE,
-	VICTORY_SUBTITLE_OFFSET_Y,
 	VICTORY_TIME_COLOR,
 	VICTORY_TIME_FADE_DELAY,
 	VICTORY_TIME_FADE_DURATION,
 	VICTORY_TIME_FONT_SIZE,
-	VICTORY_TIME_OFFSET_Y,
 	VICTORY_TITLE_COLOR,
 	VICTORY_TITLE_FADE_DURATION,
 	VICTORY_TITLE_FONT_SIZE,
-	VICTORY_TITLE_OFFSET_Y,
 	VICTORY_TITLE_SCALE_UP,
 } from "../config";
+import { isAnyGamepadButtonDown } from "../input/gamepad-utils";
+
+const TITLE_BG_RADIUS = 12;
+const TITLE_BG_COLOR = 0x332200;
+const TITLE_BG_ALPHA = 0.6;
+const TITLE_BG_PAD = { left: 32, right: 32, top: 16, bottom: 16 };
+const SIZER_ITEM_SPACING = 12;
+const LEADERBOARD_ITEM_SPACING = 4;
+const PROMPT_TOP_PAD = 24;
+const LEADERBOARD_TOP_PAD = 16;
+const LEADERBOARD_ROW_STAGGER_MS = 100;
 
 export class VictoryScene extends Phaser.Scene {
+	declare rexUI: UIPlugin;
+
 	private canAcceptInput = false;
 	private gpButtonWasDown = true;
 
@@ -79,123 +86,91 @@ export class VictoryScene extends Phaser.Scene {
 		// Golden background
 		this.cameras.main.setBackgroundColor(VICTORY_BG_COLOR);
 
-		// Golden overlay
-		const overlay = this.add.graphics();
-		overlay.fillStyle(VICTORY_OVERLAY_COLOR, VICTORY_OVERLAY_ALPHA);
-		overlay.fillRect(0, 0, width, height);
+		// Golden overlay using rexUI roundRectangle
+		this.rexUI.add.roundRectangle(
+			cx,
+			cy,
+			width,
+			height,
+			0,
+			VICTORY_OVERLAY_COLOR,
+			VICTORY_OVERLAY_ALPHA,
+		);
 
-		// Victory text
-		const title = this.add
-			.text(cx, cy + VICTORY_TITLE_OFFSET_Y, "YOU REACHED THE SKY!", {
+		// Title with rounded background
+		const titleBg = this.rexUI.add.roundRectangle(
+			0,
+			0,
+			0,
+			0,
+			TITLE_BG_RADIUS,
+			TITLE_BG_COLOR,
+			TITLE_BG_ALPHA,
+		);
+
+		const titleText = this.add
+			.text(0, 0, "YOU REACHED THE SKY!", {
 				fontSize: VICTORY_TITLE_FONT_SIZE,
 				color: VICTORY_TITLE_COLOR,
 				fontStyle: "bold",
 			})
-			.setResolution(TEXT_RESOLUTION)
-			.setOrigin(0.5)
-			.setAlpha(0);
+			.setResolution(TEXT_RESOLUTION);
 
-		this.tweens.add({
-			targets: title,
-			alpha: 1,
-			scaleX: VICTORY_TITLE_SCALE_UP,
-			scaleY: VICTORY_TITLE_SCALE_UP,
-			duration: VICTORY_TITLE_FADE_DURATION,
-			ease: "Back.easeOut",
+		const titleLabel = this.rexUI.add.label({
+			background: titleBg,
+			text: titleText,
+			space: TITLE_BG_PAD,
+			align: "center",
 		});
 
 		// Time display
 		const timeMs = data?.timeMs ?? 0;
 		const timeStr = formatTimeMs(timeMs);
 
-		const timeLabel = this.add
-			.text(cx, cy + VICTORY_TIME_OFFSET_Y, `Time: ${timeStr}`, {
+		const timeText = this.add
+			.text(0, 0, `Time: ${timeStr}`, {
 				fontSize: VICTORY_TIME_FONT_SIZE,
 				color: VICTORY_TIME_COLOR,
 			})
-			.setResolution(TEXT_RESOLUTION)
-			.setOrigin(0.5)
-			.setAlpha(0);
-
-		this.tweens.add({
-			targets: timeLabel,
-			alpha: 1,
-			duration: VICTORY_TIME_FADE_DURATION,
-			delay: VICTORY_TIME_FADE_DELAY,
-		});
+			.setResolution(TEXT_RESOLUTION);
 
 		// Subtitle
-		const subtitle = this.add
-			.text(
-				cx,
-				cy + VICTORY_SUBTITLE_OFFSET_Y,
-				"You escaped the rising lava!",
-				{
-					fontSize: VICTORY_SUBTITLE_FONT_SIZE,
-					color: VICTORY_SUBTITLE_COLOR,
-				},
-			)
-			.setResolution(TEXT_RESOLUTION)
-			.setOrigin(0.5)
-			.setAlpha(0);
-
-		this.tweens.add({
-			targets: subtitle,
-			alpha: 1,
-			duration: VICTORY_SUBTITLE_FADE_DURATION,
-			delay: VICTORY_SUBTITLE_FADE_DELAY,
-		});
+		const subtitleText = this.add
+			.text(0, 0, "You escaped the rising lava!", {
+				fontSize: VICTORY_SUBTITLE_FONT_SIZE,
+				color: VICTORY_SUBTITLE_COLOR,
+			})
+			.setResolution(TEXT_RESOLUTION);
 
 		// High score check
 		const position = saveHighScore(timeMs);
 
-		if (position !== null) {
-			const hsLabel = this.add
-				.text(
-					cx,
-					cy + VICTORY_HIGH_SCORE_OFFSET_Y,
-					`NEW HIGH SCORE! #${position}`,
-					{
-						fontSize: VICTORY_HIGH_SCORE_FONT_SIZE,
-						color: VICTORY_HIGH_SCORE_COLOR,
-						fontStyle: "bold",
-					},
-				)
-				.setResolution(TEXT_RESOLUTION)
-				.setOrigin(0.5)
-				.setAlpha(0);
+		// High score notification (conditionally created)
+		const hsText =
+			position !== null
+				? this.add
+						.text(0, 0, `NEW HIGH SCORE! #${position}`, {
+							fontSize: VICTORY_HIGH_SCORE_FONT_SIZE,
+							color: VICTORY_HIGH_SCORE_COLOR,
+							fontStyle: "bold",
+						})
+						.setResolution(TEXT_RESOLUTION)
+				: null;
 
-			this.tweens.add({
-				targets: hsLabel,
-				alpha: 1,
-				duration: VICTORY_TIME_FADE_DURATION,
-				delay: VICTORY_HIGH_SCORE_FADE_DELAY,
-			});
-		}
-
-		// Leaderboard
-		const scores = loadHighScores();
-		const leaderboardTop = cy + VICTORY_LEADERBOARD_OFFSET_Y;
-
-		const lbHeader = this.add
-			.text(cx, leaderboardTop, "TOP TIMES", {
+		// Leaderboard header
+		const lbHeaderText = this.add
+			.text(0, 0, "TOP TIMES", {
 				fontSize: VICTORY_LEADERBOARD_FONT_SIZE,
 				color: VICTORY_LEADERBOARD_HEADER_COLOR,
 				fontStyle: "bold",
 			})
-			.setResolution(TEXT_RESOLUTION)
-			.setOrigin(0.5)
-			.setAlpha(0);
+			.setResolution(TEXT_RESOLUTION);
 
-		this.tweens.add({
-			targets: lbHeader,
-			alpha: 1,
-			duration: VICTORY_TIME_FADE_DURATION,
-			delay: VICTORY_LEADERBOARD_FADE_DELAY,
-		});
+		// Leaderboard rows
+		const scores = loadHighScores();
+		const leaderboardRows: Phaser.GameObjects.Text[] = [];
 
 		for (let i = 0; i < HIGH_SCORES_MAX; i++) {
-			const rowY = leaderboardTop + VICTORY_LEADERBOARD_ROW_HEIGHT * (i + 1);
 			const entry = scores[i];
 			const text = entry
 				? `#${i + 1}  ${formatTimeMs(entry.timeMs)}`
@@ -206,46 +181,125 @@ export class VictoryScene extends Phaser.Scene {
 				: VICTORY_SCORE_COLOR;
 
 			const row = this.add
-				.text(cx, rowY, text, {
+				.text(0, 0, text, {
 					fontSize: VICTORY_LEADERBOARD_FONT_SIZE,
 					color,
 					fontStyle: isCurrentScore ? "bold" : "",
 				})
-				.setResolution(TEXT_RESOLUTION)
-				.setOrigin(0.5)
-				.setAlpha(0);
-
-			this.tweens.add({
-				targets: row,
-				alpha: 1,
-				duration: VICTORY_TIME_FADE_DURATION,
-				delay: VICTORY_LEADERBOARD_FADE_DELAY + (i + 1) * 100,
-			});
+				.setResolution(TEXT_RESOLUTION);
+			leaderboardRows.push(row);
 		}
 
 		// Prompt
-		const prompt = this.add
-			.text(
-				cx,
-				cy + VICTORY_PROMPT_OFFSET_Y,
-				"Press any key or button to continue",
-				{
-					fontSize: VICTORY_PROMPT_FONT_SIZE,
-					color: VICTORY_PROMPT_COLOR,
-				},
-			)
-			.setResolution(TEXT_RESOLUTION)
-			.setOrigin(0.5)
-			.setAlpha(0);
+		const promptText = this.add
+			.text(0, 0, "Press any key or button to continue", {
+				fontSize: VICTORY_PROMPT_FONT_SIZE,
+				color: VICTORY_PROMPT_COLOR,
+			})
+			.setResolution(TEXT_RESOLUTION);
 
+		// Leaderboard sub-sizer
+		const lbSizer = this.rexUI.add.sizer({
+			orientation: "vertical",
+			space: { item: LEADERBOARD_ITEM_SPACING },
+		});
+		lbSizer.add(lbHeaderText, { align: "center" });
+		for (const row of leaderboardRows) {
+			lbSizer.add(row, { align: "center" });
+		}
+
+		// Main vertical sizer
+		const sizer = this.rexUI.add
+			.sizer({
+				x: cx,
+				y: cy,
+				orientation: "vertical",
+				space: { item: SIZER_ITEM_SPACING },
+			})
+			.add(titleLabel, { align: "center" })
+			.add(timeText, { align: "center" })
+			.add(subtitleText, { align: "center" });
+
+		if (hsText) {
+			sizer.add(hsText, { align: "center" });
+		}
+
+		sizer
+			.add(lbSizer, {
+				align: "center",
+				padding: { top: LEADERBOARD_TOP_PAD },
+			})
+			.add(promptText, {
+				align: "center",
+				padding: { top: PROMPT_TOP_PAD },
+			})
+			.layout();
+
+		// Fade-in tweens
+		titleLabel.setAlpha(0);
 		this.tweens.add({
-			targets: prompt,
+			targets: titleLabel,
+			alpha: 1,
+			scaleX: VICTORY_TITLE_SCALE_UP,
+			scaleY: VICTORY_TITLE_SCALE_UP,
+			duration: VICTORY_TITLE_FADE_DURATION,
+			ease: "Back.easeOut",
+		});
+
+		timeText.setAlpha(0);
+		this.tweens.add({
+			targets: timeText,
+			alpha: 1,
+			duration: VICTORY_TIME_FADE_DURATION,
+			delay: VICTORY_TIME_FADE_DELAY,
+		});
+
+		subtitleText.setAlpha(0);
+		this.tweens.add({
+			targets: subtitleText,
+			alpha: 1,
+			duration: VICTORY_SUBTITLE_FADE_DURATION,
+			delay: VICTORY_SUBTITLE_FADE_DELAY,
+		});
+
+		if (hsText) {
+			hsText.setAlpha(0);
+			this.tweens.add({
+				targets: hsText,
+				alpha: 1,
+				duration: VICTORY_TIME_FADE_DURATION,
+				delay: VICTORY_HIGH_SCORE_FADE_DELAY,
+			});
+		}
+
+		lbHeaderText.setAlpha(0);
+		this.tweens.add({
+			targets: lbHeaderText,
+			alpha: 1,
+			duration: VICTORY_TIME_FADE_DURATION,
+			delay: VICTORY_LEADERBOARD_FADE_DELAY,
+		});
+
+		for (let i = 0; i < leaderboardRows.length; i++) {
+			leaderboardRows[i].setAlpha(0);
+			this.tweens.add({
+				targets: leaderboardRows[i],
+				alpha: 1,
+				duration: VICTORY_TIME_FADE_DURATION,
+				delay:
+					VICTORY_LEADERBOARD_FADE_DELAY + (i + 1) * LEADERBOARD_ROW_STAGGER_MS,
+			});
+		}
+
+		promptText.setAlpha(0);
+		this.tweens.add({
+			targets: promptText,
 			alpha: 1,
 			duration: VICTORY_PROMPT_FADE_DURATION,
 			delay: VICTORY_PROMPT_FADE_DELAY,
 			onComplete: () => {
 				this.tweens.add({
-					targets: prompt,
+					targets: promptText,
 					alpha: VICTORY_PROMPT_PULSE_ALPHA,
 					duration: VICTORY_PROMPT_PULSE_DURATION,
 					yoyo: true,
@@ -254,7 +308,7 @@ export class VictoryScene extends Phaser.Scene {
 			},
 		});
 
-		// Golden sparkle particles
+		// Golden sparkle particles (standalone, outside sizer)
 		for (let i = 0; i < VICTORY_SPARKLE_COUNT; i++) {
 			const px = Math.random() * width;
 			const py = Math.random() * height;
@@ -299,21 +353,7 @@ export class VictoryScene extends Phaser.Scene {
 	update(): void {
 		if (!this.canAcceptInput) return;
 
-		// Poll gamepad for any button
-		const pads = navigator.getGamepads?.();
-		if (!pads) return;
-
-		let anyButtonDown = false;
-		for (const pad of pads) {
-			if (!pad?.connected) continue;
-			for (const btn of pad.buttons) {
-				if (btn.pressed) {
-					anyButtonDown = true;
-					break;
-				}
-			}
-			if (anyButtonDown) break;
-		}
+		const anyButtonDown = isAnyGamepadButtonDown();
 
 		if (anyButtonDown && !this.gpButtonWasDown) {
 			this.scene.start("TitleScene");

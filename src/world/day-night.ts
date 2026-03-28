@@ -18,13 +18,8 @@ import {
 	WORLD_WIDTH_TILES,
 } from "../config";
 
-export interface DayNightCycle {
-	elapsed: number;
-	mask: Phaser.Display.Masks.BitmapMask;
-	maskGraphics: Phaser.GameObjects.Graphics;
-	overlay: Phaser.GameObjects.Rectangle;
-	timeIndicator: Phaser.GameObjects.Text;
-}
+const WORLD_W = WORLD_WIDTH_TILES * TILE_SIZE;
+const WORLD_H = WORLD_HEIGHT_TILES * TILE_SIZE;
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
@@ -51,85 +46,89 @@ const getDarkness = (elapsed: number): number => {
 	return (Math.sin(cyclePos * Math.PI * 2 - Math.PI / 2) + 1) / 2;
 };
 
-export const createDayNight = (scene: Phaser.Scene): DayNightCycle => {
-	const worldW = WORLD_WIDTH_TILES * TILE_SIZE;
-	const worldH = WORLD_HEIGHT_TILES * TILE_SIZE;
+export class DayNightCycle extends Phaser.GameObjects.Container {
+	private elapsed = 0;
+	private mask_: Phaser.Display.Masks.BitmapMask;
+	private maskGraphics: Phaser.GameObjects.Graphics;
+	private overlay: Phaser.GameObjects.Rectangle;
+	private timeIndicator: Phaser.GameObjects.Text;
 
-	// Dark overlay covering the entire world
-	const overlay = scene.add.rectangle(
-		worldW / 2,
-		worldH / 2,
-		worldW,
-		worldH,
-		NIGHT_OVERLAY_COLOR,
-		0,
-	);
-	overlay.setDepth(UI_DEPTH - 2);
+	playerX = 0;
+	playerY = 0;
 
-	// Graphics object for the circular vision mask (drawn in world space)
-	const maskGraphics = scene.add.graphics();
-	maskGraphics.setVisible(false);
+	constructor(scene: Phaser.Scene) {
+		super(scene);
+		scene.add.existing(this);
+		this.addToUpdateList();
 
-	// Create a bitmap mask — the overlay is only visible WHERE the mask is NOT drawn
-	const mask = new Phaser.Display.Masks.BitmapMask(scene, maskGraphics);
-	mask.invertAlpha = true;
-	overlay.setMask(mask);
+		// Dark overlay covering the entire world
+		this.overlay = scene.add.rectangle(
+			WORLD_W / 2,
+			WORLD_H / 2,
+			WORLD_W,
+			WORLD_H,
+			NIGHT_OVERLAY_COLOR,
+			0,
+		);
+		this.overlay.setDepth(UI_DEPTH - 2);
 
-	// Time indicator (HUD) — styled with background for readability
-	const timeIndicator = scene.add.text(10, 14, "", {
-		fontSize: "16px",
-		color: DAY_NIGHT_TEXT_COLOR,
-		fontStyle: "bold",
-		backgroundColor: "#00000088",
-		padding: { x: 8, y: 4 },
-	});
-	timeIndicator.setResolution(TEXT_RESOLUTION);
-	timeIndicator.setScrollFactor(0);
-	timeIndicator.setDepth(UI_DEPTH);
+		// Graphics object for the circular vision mask (drawn in world space)
+		this.maskGraphics = scene.add.graphics();
+		this.maskGraphics.setVisible(false);
 
-	return { elapsed: 0, mask, maskGraphics, overlay, timeIndicator };
-};
+		// Create a bitmap mask — the overlay is only visible WHERE the mask is NOT drawn
+		this.mask_ = new Phaser.Display.Masks.BitmapMask(scene, this.maskGraphics);
+		this.mask_.invertAlpha = true;
+		this.overlay.setMask(this.mask_);
 
-export const updateDayNight = (
-	cycle: DayNightCycle,
-	scene: Phaser.Scene,
-	playerX: number,
-	playerY: number,
-	delta: number,
-): void => {
-	cycle.elapsed += delta;
-
-	const darkness = getDarkness(cycle.elapsed);
-
-	// Vision radius interpolates between day and night
-	const visionRadius = lerp(VISION_RADIUS_DAY, VISION_RADIUS_NIGHT, darkness);
-
-	// Overlay alpha — darker at night
-	cycle.overlay.setAlpha(darkness * DAY_NIGHT_OVERLAY_MAX_ALPHA);
-
-	// Redraw the circular mask at the player's position
-	cycle.maskGraphics.clear();
-	cycle.maskGraphics.fillStyle(0xffffff);
-
-	// Soft edge: draw concentric circles with decreasing alpha
-	const steps = DAY_NIGHT_VISION_EDGE_STEPS;
-	for (let i = steps; i >= 0; i--) {
-		const r = visionRadius + (steps - i) * DAY_NIGHT_VISION_EDGE_WIDTH;
-		const alpha = i / steps;
-		cycle.maskGraphics.fillStyle(0xffffff, alpha);
-		cycle.maskGraphics.fillCircle(playerX, playerY, r);
+		// Time indicator (HUD) — styled with background for readability
+		this.timeIndicator = scene.add.text(10, 14, "", {
+			fontSize: "16px",
+			color: DAY_NIGHT_TEXT_COLOR,
+			fontStyle: "bold",
+			backgroundColor: "#00000088",
+			padding: { x: 8, y: 4 },
+		});
+		this.timeIndicator.setResolution(TEXT_RESOLUTION);
+		this.timeIndicator.setScrollFactor(0);
+		this.timeIndicator.setDepth(UI_DEPTH);
 	}
 
-	// Sky color transition
-	const skyColor = lerpColor(DAY_SKY_COLOR, NIGHT_SKY_COLOR, darkness);
-	scene.cameras.main.setBackgroundColor(skyColor);
+	preUpdate = (_time: number, delta: number): void => {
+		this.elapsed += delta;
 
-	// Time indicator with emoji icon
-	const isDay = darkness < 0.5;
-	const icon = isDay ? "\u2600\ufe0f" : "\u{1f319}";
-	const cycleNum = Math.floor(cycle.elapsed / DAY_NIGHT_CYCLE_MS) + 1;
-	cycle.timeIndicator.setText(`${icon} Cycle ${cycleNum}`);
-	cycle.timeIndicator.setColor(
-		isDay ? DAY_NIGHT_DAY_COLOR : DAY_NIGHT_NIGHT_COLOR,
-	);
-};
+		const darkness = getDarkness(this.elapsed);
+
+		// Vision radius interpolates between day and night
+		const visionRadius = lerp(VISION_RADIUS_DAY, VISION_RADIUS_NIGHT, darkness);
+
+		// Overlay alpha — darker at night
+		this.overlay.setAlpha(darkness * DAY_NIGHT_OVERLAY_MAX_ALPHA);
+
+		// Redraw the circular mask at the player's position
+		this.maskGraphics.clear();
+		this.maskGraphics.fillStyle(0xffffff);
+
+		// Soft edge: draw concentric circles with decreasing alpha
+		const steps = DAY_NIGHT_VISION_EDGE_STEPS;
+		for (let i = steps; i >= 0; i--) {
+			const r = visionRadius + (steps - i) * DAY_NIGHT_VISION_EDGE_WIDTH;
+			const alpha = i / steps;
+			this.maskGraphics.fillStyle(0xffffff, alpha);
+			this.maskGraphics.fillCircle(this.playerX, this.playerY, r);
+		}
+
+		// Sky color transition
+		const skyColor = lerpColor(DAY_SKY_COLOR, NIGHT_SKY_COLOR, darkness);
+		this.scene.cameras.main.setBackgroundColor(skyColor);
+
+		// Time indicator with emoji icon
+		const isDay = darkness < 0.5;
+		const icon = isDay ? "\u2600\ufe0f" : "\u{1f319}";
+		const cycleNum = Math.floor(this.elapsed / DAY_NIGHT_CYCLE_MS) + 1;
+		this.timeIndicator.setText(`${icon} Cycle ${cycleNum}`);
+		this.timeIndicator.setColor(
+			isDay ? DAY_NIGHT_DAY_COLOR : DAY_NIGHT_NIGHT_COLOR,
+		);
+	};
+}
