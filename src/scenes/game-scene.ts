@@ -13,6 +13,7 @@ import {
 	CLOUD_SPEED,
 	COLORS,
 	FRUIT_PER_LIFE,
+	GAMEPAD_RIGHT_STICK_DEADZONE,
 	GOAL_BEACON_BEAM_WIDTH,
 	GOAL_BEACON_COLOR,
 	GOAL_BEACON_HEIGHT_TILES,
@@ -23,6 +24,10 @@ import {
 	LAVA_GLOW_ALPHA,
 	LAVA_GLOW_COLOR,
 	LAVA_GLOW_HEIGHT,
+	LAVA_METER_HEIGHT,
+	LAVA_METER_MARGIN_TOP,
+	LAVA_METER_WIDTH,
+	LAVA_METER_X,
 	LEAF_PARTICLE_DRIFT_SPEED,
 	LEAF_PARTICLE_HEIGHT,
 	LEAF_PARTICLE_INTERVAL,
@@ -58,6 +63,7 @@ import {
 	createPlayer,
 	type Player,
 	readGamepadButtons,
+	readGamepadRightStick,
 	updatePlayer,
 } from "../player/player";
 import { BlockType } from "../types";
@@ -73,6 +79,7 @@ import {
 	type LavaLayer,
 	updateLava,
 } from "../world/lava";
+import { createNpcManager, type NpcManager, updateNpcs } from "../world/npcs";
 import { updateWater } from "../world/water-physics";
 import {
 	createWorldTextures,
@@ -98,11 +105,17 @@ export class GameScene extends Phaser.Scene {
 	private glideIndicator!: Phaser.GameObjects.Text;
 	private hoverHighlight!: Phaser.GameObjects.Graphics;
 	private dayNight!: DayNightCycle;
+	private lavaMeterGfx!: Phaser.GameObjects.Graphics;
+	private lavaMeterLabel!: Phaser.GameObjects.Text;
 	private gpLBWasDown = false;
 	private gpRBWasDown = false;
 	private gpBWasDown = false;
+	private gamepadCrosshair!: Phaser.GameObjects.Graphics;
 	private livesText!: Phaser.GameObjects.Text;
 	private fruitText!: Phaser.GameObjects.Text;
+
+	// NPCs
+	private npcManager!: NpcManager;
 
 	// Clouds
 	private clouds: Phaser.GameObjects.Container[] = [];
@@ -148,7 +161,7 @@ export class GameScene extends Phaser.Scene {
 
 		// Generate world
 		createWorldTextures(this);
-		const { grid, spawnX, spawnY } = generateWorld();
+		const { grid, spawnX, spawnY, npcPositions } = generateWorld();
 		this.grid = grid;
 		this.blockGroup = renderWorld(this, grid);
 
@@ -165,6 +178,9 @@ export class GameScene extends Phaser.Scene {
 
 		// Player
 		this.player = createPlayer(this, spawnX, spawnY, data);
+
+		// NPCs
+		this.npcManager = createNpcManager(this, npcPositions);
 
 		// Camera
 		this.cameras.main.setBounds(
@@ -261,6 +277,9 @@ export class GameScene extends Phaser.Scene {
 		// Hover highlight
 		this.hoverHighlight = this.add.graphics();
 
+		// Gamepad right-stick crosshair
+		this.gamepadCrosshair = this.add.graphics();
+
 		// Day/night cycle
 		this.dayNight = createDayNight(this);
 
@@ -315,6 +334,23 @@ export class GameScene extends Phaser.Scene {
 		this.fruitText.setDepth(100);
 
 		this.updateLivesHUD();
+
+		// Lava progress meter (left side vertical bar)
+		this.lavaMeterGfx = this.add.graphics();
+		this.lavaMeterGfx.setScrollFactor(0);
+		this.lavaMeterGfx.setDepth(100);
+		this.lavaMeterLabel = this.add.text(
+			LAVA_METER_X + LAVA_METER_WIDTH + 4,
+			LAVA_METER_MARGIN_TOP - 12,
+			"",
+			{
+				fontSize: "10px",
+				color: "#aaaacc",
+			},
+		);
+		this.lavaMeterLabel.setResolution(2);
+		this.lavaMeterLabel.setScrollFactor(0);
+		this.lavaMeterLabel.setDepth(100);
 	}
 
 	private updateHoverHighlight = (): void => {
@@ -379,6 +415,7 @@ export class GameScene extends Phaser.Scene {
 		}
 		this.collectFruit();
 		this.updateLivesHUD();
+		this.updateLavaMeter(lavaY);
 
 		// Block breaking (left click held)
 		handleBlockBreak(
@@ -419,6 +456,15 @@ export class GameScene extends Phaser.Scene {
 		// Ambient upward-drifting particles
 		this.updateAmbientParticles(delta);
 
+		// NPC dialogue
+		updateNpcs(
+			this,
+			this.npcManager,
+			this.player.container.x,
+			this.player.container.y,
+			delta,
+		);
+
 		// Glide indicator
 		if (this.player.isGliding) {
 			this.glideIndicator.setText("GLIDING");
@@ -428,6 +474,66 @@ export class GameScene extends Phaser.Scene {
 			this.glideIndicator.setText("");
 		}
 	}
+
+	private getGamepadTargetTile = (): { gx: number; gy: number } => {
+		const playerGx = Math.floor(this.player.container.x / TILE_SIZE);
+		const playerGy = Math.floor(this.player.container.y / TILE_SIZE);
+
+		const rightStick = readGamepadRightStick();
+		const magnitude = Math.sqrt(
+			rightStick.x * rightStick.x + rightStick.y * rightStick.y,
+		);
+
+		if (magnitude > GAMEPAD_RIGHT_STICK_DEADZONE) {
+			// Snap angle to 8 directions (N, NE, E, SE, S, SW, W, NW)
+			const angle = Math.atan2(rightStick.y, rightStick.x);
+			const snapped = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+			const dx = Math.round(Math.cos(snapped));
+			const dy = Math.round(Math.sin(snapped));
+			return { gx: playerGx + dx, gy: playerGy + dy };
+		}
+
+		// Fallback: one tile in the facing direction
+		const dir = this.player.facingRight ? 1 : -1;
+		return { gx: playerGx + dir, gy: playerGy };
+	};
+
+	private updateGamepadCrosshair = (): void => {
+		this.gamepadCrosshair.clear();
+
+		const rightStick = readGamepadRightStick();
+		const magnitude = Math.sqrt(
+			rightStick.x * rightStick.x + rightStick.y * rightStick.y,
+		);
+
+		if (magnitude <= GAMEPAD_RIGHT_STICK_DEADZONE) {
+			return;
+		}
+
+		const { gx, gy } = this.getGamepadTargetTile();
+
+		// Bounds check
+		if (
+			gy < 0 ||
+			gy >= this.grid.length ||
+			gx < 0 ||
+			gx >= this.grid[0].length
+		) {
+			return;
+		}
+
+		this.gamepadCrosshair.lineStyle(
+			HOVER_HIGHLIGHT_LINE_WIDTH,
+			HOVER_HIGHLIGHT_COLOR,
+			HOVER_HIGHLIGHT_ALPHA,
+		);
+		this.gamepadCrosshair.strokeRect(
+			gx * TILE_SIZE,
+			gy * TILE_SIZE,
+			TILE_SIZE,
+			TILE_SIZE,
+		);
+	};
 
 	private handleGamepadActions = (): void => {
 		const { lb, rb, x, b } = readGamepadButtons();
@@ -446,11 +552,11 @@ export class GameScene extends Phaser.Scene {
 		this.gpLBWasDown = lb;
 		this.gpRBWasDown = rb;
 
-		// X = break block in front of player
+		// Determine target tile (right stick or facing direction fallback)
+		const { gx, gy } = this.getGamepadTargetTile();
+
+		// X = break block at target tile
 		if (x) {
-			const dir = this.player.facingRight ? 1 : -1;
-			const gx = Math.floor(this.player.container.x / TILE_SIZE) + dir;
-			const gy = Math.floor(this.player.container.y / TILE_SIZE);
 			const fakePointer = {
 				worldX: gx * TILE_SIZE + TILE_SIZE / 2,
 				worldY: gy * TILE_SIZE + TILE_SIZE / 2,
@@ -468,11 +574,8 @@ export class GameScene extends Phaser.Scene {
 			);
 		}
 
-		// B = place block in front of player (edge-triggered)
+		// B = place block at target tile (edge-triggered)
 		if (b && !this.gpBWasDown) {
-			const dir = this.player.facingRight ? 1 : -1;
-			const gx = Math.floor(this.player.container.x / TILE_SIZE) + dir;
-			const gy = Math.floor(this.player.container.y / TILE_SIZE);
 			const fakePointer = {
 				worldX: gx * TILE_SIZE + TILE_SIZE / 2,
 				worldY: gy * TILE_SIZE + TILE_SIZE / 2,
@@ -487,6 +590,9 @@ export class GameScene extends Phaser.Scene {
 			);
 		}
 		this.gpBWasDown = b;
+
+		// Update crosshair indicator
+		this.updateGamepadCrosshair();
 	};
 
 	private collectFruit = (): void => {
@@ -565,6 +671,55 @@ export class GameScene extends Phaser.Scene {
 		} else {
 			this.fruitText.setText("");
 		}
+	};
+
+	private updateLavaMeter = (lavaY: number): void => {
+		const worldH = WORLD_HEIGHT_TILES * TILE_SIZE;
+		const meterX = LAVA_METER_X;
+		const meterY = LAVA_METER_MARGIN_TOP;
+		const meterW = LAVA_METER_WIDTH;
+		const meterH = LAVA_METER_HEIGHT;
+
+		const playerY = this.player.container.y;
+
+		// Normalize positions (0 = top of world, 1 = bottom)
+		const playerNorm = Math.max(0, Math.min(1, playerY / worldH));
+		const lavaNorm = Math.max(0, Math.min(1, lavaY / worldH));
+
+		this.lavaMeterGfx.clear();
+
+		// Background track
+		this.lavaMeterGfx.fillStyle(0x000000, 0.5);
+		this.lavaMeterGfx.fillRoundedRect(meterX, meterY, meterW, meterH, 4);
+		this.lavaMeterGfx.lineStyle(1, 0xffffff, 0.15);
+		this.lavaMeterGfx.strokeRoundedRect(meterX, meterY, meterW, meterH, 4);
+
+		// Lava fill (red, from bottom up to lava position)
+		const lavaFillH = (1 - lavaNorm) * meterH;
+		if (lavaFillH > 0) {
+			this.lavaMeterGfx.fillStyle(0xff4400, 0.6);
+			this.lavaMeterGfx.fillRect(
+				meterX + 1,
+				meterY + meterH - lavaFillH,
+				meterW - 2,
+				lavaFillH,
+			);
+		}
+
+		// Goal zone at top (golden)
+		this.lavaMeterGfx.fillStyle(0xffd700, 0.4);
+		this.lavaMeterGfx.fillRect(meterX + 1, meterY, meterW - 2, 8);
+
+		// Player position marker (white dot)
+		const playerMeterY = meterY + playerNorm * meterH;
+		this.lavaMeterGfx.fillStyle(0xffffff);
+		this.lavaMeterGfx.fillCircle(meterX + meterW / 2, playerMeterY, 4);
+		this.lavaMeterGfx.lineStyle(1, 0x000000, 0.5);
+		this.lavaMeterGfx.strokeCircle(meterX + meterW / 2, playerMeterY, 4);
+
+		// Height label in meters (1 tile = 1m)
+		const heightInMeters = Math.floor((worldH - playerY) / TILE_SIZE);
+		this.lavaMeterLabel.setText(`${heightInMeters}m`);
 	};
 
 	private createClouds = (): void => {

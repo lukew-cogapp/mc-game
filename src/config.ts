@@ -9,6 +9,7 @@ export const PLAYER_SPEED = 200;
 export const JUMP_VELOCITY = -350;
 export const GLIDE_GRAVITY = 100;
 export const GLIDE_HORIZONTAL_BOOST = 1.3;
+export const DOUBLE_JUMP_VELOCITY = -300;
 
 // -- Island Generation --
 export const HOME_ISLAND_WIDTH = 16;
@@ -16,7 +17,7 @@ export const HOME_ISLAND_HEIGHT = 8;
 export const ISLAND_COUNT_MIN = 12;
 export const ISLAND_COUNT_MAX = 18;
 export const ISLAND_WIDTH_MIN = 6;
-export const ISLAND_WIDTH_MAX = 14;
+export const ISLAND_WIDTH_MAX = 22;
 export const ISLAND_HEIGHT_MIN = 4;
 export const ISLAND_HEIGHT_MAX = 7;
 export const ISLAND_MARGIN = 5;
@@ -66,10 +67,26 @@ export const ISLAND_TALL_NARROW_WIDTH_MAX = 7;
 export const ISLAND_TALL_NARROW_HEIGHT_MIN = 7;
 export const ISLAND_TALL_NARROW_HEIGHT_MAX = 10;
 export const ISLAND_FLAT_WIDE_WIDTH_MIN = 12;
-export const ISLAND_FLAT_WIDE_WIDTH_MAX = 18;
+export const ISLAND_FLAT_WIDE_WIDTH_MAX = 28;
 export const ISLAND_FLAT_WIDE_HEIGHT_MIN = 3;
 export const ISLAND_FLAT_WIDE_HEIGHT_MAX = 5;
 export const ISLAND_OVERHANG_INDENT = 2;
+
+// -- Climb Path Generation --
+export const CLIMB_BAND_HEIGHT = 9;
+export const CLIMB_BAND_MIN_ISLANDS = 1;
+export const CLIMB_BAND_MAX_ISLANDS = 2;
+export const CLIMB_HORIZONTAL_REACH = 15;
+export const CLIMB_TOP_SHRINK_RATIO = 0.6;
+export const CLIMB_TOP_BAND_THRESHOLD = 0.75;
+
+// -- Island Edge Irregularity --
+export const ISLAND_EDGE_INDENT_CHANCE = 0.35;
+export const ISLAND_EDGE_INDENT_MAX = 1;
+
+// -- Platform Shadow --
+export const PLATFORM_SHADOW_ALPHA = 0.15;
+export const PLATFORM_SHADOW_HEIGHT = 4;
 
 // -- Decorations --
 export const DECORATION_FLOWER_CHANCE = 0.15;
@@ -213,6 +230,7 @@ export const FRUIT_PER_LIFE = 10;
 
 // -- Gamepad --
 export const GAMEPAD_STICK_DEADZONE = 0.3;
+export const GAMEPAD_RIGHT_STICK_DEADZONE = 0.3;
 
 // -- Day/Night Cycle --
 export const DAY_NIGHT_CYCLE_MS = 120_000;
@@ -221,6 +239,12 @@ export const VISION_RADIUS_NIGHT = 150;
 export const NIGHT_OVERLAY_COLOR = 0x000022;
 export const NIGHT_SKY_COLOR = 0x0a0a2e;
 export const DAY_SKY_COLOR = 0x87ceeb;
+
+// -- Lava Meter --
+export const LAVA_METER_X = 16;
+export const LAVA_METER_WIDTH = 12;
+export const LAVA_METER_HEIGHT = 200;
+export const LAVA_METER_MARGIN_TOP = 60;
 
 // -- Hover Highlight --
 export const HOVER_HIGHLIGHT_COLOR = 0xffffff;
@@ -248,6 +272,26 @@ export const PLAYER_OUTLINE_OFFSET = 1;
 export const CLOUD_COUNT = 10;
 export const CLOUD_SPEED = 0.2;
 export const CLOUD_ALPHA = 0.1;
+
+// -- NPCs --
+export const NPC_COUNT = 5;
+export const NPC_INTERACT_RANGE = 3;
+export const NPC_DIALOGUE_CYCLE_MS = 4000;
+export const NPC_BODY_COLOR = 0xdd8833;
+export const NPC_HEAD_COLOR = 0xffcc88;
+export const NPC_BODY_WIDTH = 14;
+export const NPC_BODY_HEIGHT = 22;
+export const NPC_HEAD_RADIUS = 5;
+export const NPC_BOB_AMPLITUDE = 3;
+export const NPC_BOB_DURATION = 1200;
+export const NPC_BUBBLE_PADDING_X = 10;
+export const NPC_BUBBLE_PADDING_Y = 6;
+export const NPC_BUBBLE_ALPHA = 0.8;
+export const NPC_BUBBLE_OFFSET_Y = 30;
+export const NPC_BUBBLE_POINTER_SIZE = 6;
+export const NPC_BUBBLE_FONT_SIZE = "11px";
+export const NPC_BUBBLE_MAX_WIDTH = 180;
+export const NPC_BUBBLE_FADE_DURATION = 300;
 
 // -- Falling Leaves --
 export const LEAF_PARTICLE_MAX = 10;

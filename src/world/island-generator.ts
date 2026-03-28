@@ -57,6 +57,7 @@ import {
 	WORLD_WIDTH_TILES,
 } from "../config";
 import { BlockType, type Island } from "../types";
+import { pickNpcSpawnPositions } from "./npcs";
 
 const randomRange = (min: number, max: number): number =>
 	Math.floor(Math.random() * (max - min + 1)) + min;
@@ -509,6 +510,7 @@ export const generateWorld = (): {
 	islands: Island[];
 	spawnX: number;
 	spawnY: number;
+	npcPositions: { x: number; y: number }[];
 } => {
 	const grid: BlockType[][] = Array.from({ length: WORLD_HEIGHT_TILES }, () =>
 		Array(WORLD_WIDTH_TILES).fill(BlockType.Air),
@@ -638,5 +640,8 @@ export const generateWorld = (): {
 	const spawnX = spawnTileX * TILE_SIZE;
 	const spawnY = spawnTileY * TILE_SIZE;
 
-	return { grid, islands, spawnX, spawnY };
+	// Pick NPC spawn positions on non-home islands
+	const npcPositions = pickNpcSpawnPositions(islands);
+
+	return { grid, islands, spawnX, spawnY, npcPositions };
 };

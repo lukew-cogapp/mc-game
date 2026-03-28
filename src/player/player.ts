@@ -1,6 +1,7 @@
 import {
 	COLORS,
 	DEATH_INVULNERABLE_MS,
+	DOUBLE_JUMP_VELOCITY,
 	GAMEPAD_STICK_DEADZONE,
 	GLIDE_GRAVITY,
 	GLIDE_HORIZONTAL_BOOST,
@@ -45,6 +46,8 @@ export interface Player {
 	velocityY: number;
 	isGrounded: boolean;
 	isGliding: boolean;
+	canDoubleJump: boolean;
+	jumpWasDown: boolean;
 	facingRight: boolean;
 	spawnX: number;
 	spawnY: number;
@@ -128,6 +131,8 @@ export const createPlayer = (
 		velocityY: 0,
 		isGrounded: false,
 		isGliding: false,
+		canDoubleJump: false,
+		jumpWasDown: false,
 		facingRight: true,
 		spawnX: x,
 		spawnY: y,
@@ -206,6 +211,8 @@ const readBrowserGamepad = (): {
 	rb: boolean;
 	x: boolean;
 	b: boolean;
+	rightStickX: number;
+	rightStickY: number;
 } => {
 	const none = {
 		left: false,
@@ -215,6 +222,8 @@ const readBrowserGamepad = (): {
 		rb: false,
 		x: false,
 		b: false,
+		rightStickX: 0,
+		rightStickY: 0,
 	};
 	const pads = navigator.getGamepads?.();
 	if (!pads) return none;
@@ -236,6 +245,8 @@ const readBrowserGamepad = (): {
 			rb: pad.buttons[5]?.pressed ?? false,
 			x: pad.buttons[2]?.pressed ?? false,
 			b: pad.buttons[1]?.pressed ?? false,
+			rightStickX: pad.axes[2] ?? 0,
+			rightStickY: pad.axes[3] ?? 0,
 		};
 	}
 
@@ -277,6 +288,12 @@ export const readGamepadButtons = (): {
 } => {
 	const gp = readBrowserGamepad();
 	return { lb: gp.lb, rb: gp.rb, x: gp.x, b: gp.b };
+};
+
+/** Read the right analog stick axes (-1 to 1) */
+export const readGamepadRightStick = (): { x: number; y: number } => {
+	const gp = readBrowserGamepad();
+	return { x: gp.rightStickX, y: gp.rightStickY };
 };
 
 export const updatePlayer = (
@@ -325,11 +342,19 @@ export const updatePlayer = (
 	const currentGravity = player.isGliding ? GLIDE_GRAVITY : GRAVITY;
 	player.velocityY += currentGravity * dt;
 
-	// Jump
-	if (input.jump && player.isGrounded) {
-		player.velocityY = JUMP_VELOCITY;
-		player.isGrounded = false;
+	// Jump / Double jump (edge-triggered — must release and re-press)
+	const jumpPressed = input.jump && !player.jumpWasDown;
+	if (jumpPressed) {
+		if (player.isGrounded) {
+			player.velocityY = JUMP_VELOCITY;
+			player.isGrounded = false;
+			player.canDoubleJump = true;
+		} else if (player.canDoubleJump) {
+			player.velocityY = DOUBLE_JUMP_VELOCITY;
+			player.canDoubleJump = false;
+		}
 	}
+	player.jumpWasDown = input.jump;
 
 	// Move horizontally
 	const newX = player.container.x + player.velocityX * dt;
