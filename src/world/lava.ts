@@ -26,6 +26,7 @@ export interface LavaLayer {
 
 export const createLava = (scene: Phaser.Scene): LavaLayer => {
 	const graphics = scene.add.graphics();
+	graphics.setDepth(90);
 	const currentY = (WORLD_HEIGHT_TILES - LAVA_INITIAL_HEIGHT_TILES) * TILE_SIZE;
 	return { graphics, time: 0, currentY };
 };

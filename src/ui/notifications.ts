@@ -8,6 +8,7 @@ import {
 	NOTIFICATION_OFFSET_X,
 	NOTIFICATION_OFFSET_Y,
 	NOTIFICATION_SPACING,
+	TEXT_RESOLUTION,
 	UI_DEPTH,
 } from "../config";
 
@@ -44,7 +45,7 @@ export class NotificationManager {
 			color,
 			fontStyle: "bold",
 		});
-		text.setResolution(2);
+		text.setResolution(TEXT_RESOLUTION);
 		text.setOrigin(1, 0.5);
 
 		const bgWidth = text.width + 20;

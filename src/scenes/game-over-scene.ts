@@ -15,6 +15,7 @@ import {
 	GAMEOVER_TITLE_COLOR,
 	GAMEOVER_TITLE_FADE_DURATION,
 	GAMEOVER_TITLE_OFFSET_Y,
+	TEXT_RESOLUTION,
 } from "../config";
 
 export class GameOverScene extends Phaser.Scene {
@@ -50,6 +51,7 @@ export class GameOverScene extends Phaser.Scene {
 				color: GAMEOVER_TITLE_COLOR,
 				fontStyle: "bold",
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5)
 			.setAlpha(0);
 
@@ -65,6 +67,7 @@ export class GameOverScene extends Phaser.Scene {
 				fontSize: "18px",
 				color: GAMEOVER_SUBTITLE_COLOR,
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5)
 			.setAlpha(0);
 
@@ -85,6 +88,7 @@ export class GameOverScene extends Phaser.Scene {
 					color: GAMEOVER_PROMPT_COLOR,
 				},
 			)
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5)
 			.setAlpha(0);
 

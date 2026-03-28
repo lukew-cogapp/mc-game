@@ -5,6 +5,7 @@ import {
 } from "../audio/high-scores";
 import {
 	HIGH_SCORES_MAX,
+	TEXT_RESOLUTION,
 	VICTORY_BG_COLOR,
 	VICTORY_HIGH_SCORE_COLOR,
 	VICTORY_HIGH_SCORE_FADE_DELAY,
@@ -90,6 +91,7 @@ export class VictoryScene extends Phaser.Scene {
 				color: VICTORY_TITLE_COLOR,
 				fontStyle: "bold",
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5)
 			.setAlpha(0);
 
@@ -111,6 +113,7 @@ export class VictoryScene extends Phaser.Scene {
 				fontSize: VICTORY_TIME_FONT_SIZE,
 				color: VICTORY_TIME_COLOR,
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5)
 			.setAlpha(0);
 
@@ -132,6 +135,7 @@ export class VictoryScene extends Phaser.Scene {
 					color: VICTORY_SUBTITLE_COLOR,
 				},
 			)
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5)
 			.setAlpha(0);
 
@@ -157,6 +161,7 @@ export class VictoryScene extends Phaser.Scene {
 						fontStyle: "bold",
 					},
 				)
+				.setResolution(TEXT_RESOLUTION)
 				.setOrigin(0.5)
 				.setAlpha(0);
 
@@ -178,6 +183,7 @@ export class VictoryScene extends Phaser.Scene {
 				color: VICTORY_LEADERBOARD_HEADER_COLOR,
 				fontStyle: "bold",
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5)
 			.setAlpha(0);
 
@@ -205,6 +211,7 @@ export class VictoryScene extends Phaser.Scene {
 					color,
 					fontStyle: isCurrentScore ? "bold" : "",
 				})
+				.setResolution(TEXT_RESOLUTION)
 				.setOrigin(0.5)
 				.setAlpha(0);
 
@@ -227,6 +234,7 @@ export class VictoryScene extends Phaser.Scene {
 					color: VICTORY_PROMPT_COLOR,
 				},
 			)
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5)
 			.setAlpha(0);
 

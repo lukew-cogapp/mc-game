@@ -14,7 +14,6 @@ const config: Phaser.Types.Core.GameConfig = {
 	parent: document.body,
 	scene: [TitleScene, GameScene, GameOverScene, VictoryScene],
 	roundPixels: true,
-	pixelArt: true,
 	scale: {
 		mode: Phaser.Scale.RESIZE,
 		autoCenter: Phaser.Scale.CENTER_BOTH,

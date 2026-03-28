@@ -28,6 +28,7 @@ import {
 	NPC_INTERACT_RANGE,
 	NPC_NAMES,
 	NPC_TEXT_COLOR,
+	TEXT_RESOLUTION,
 	TILE_SIZE,
 } from "../config";
 import { type BlockType, type Island, NON_SOLID_BLOCKS } from "../types";
@@ -131,7 +132,7 @@ const buildBubbleContent = (
 		wordWrap: { width: NPC_BUBBLE_MAX_WIDTH - NPC_BUBBLE_PADDING_X * 2 },
 		align: "center",
 	});
-	textObj.setResolution(2);
+	textObj.setResolution(TEXT_RESOLUTION);
 	textObj.setOrigin(0.5, 0.5);
 
 	const bubbleWidth =

@@ -12,6 +12,7 @@ import {
 	INVENTORY_SLOT_SIZE,
 	INVENTORY_SLOTS,
 	INVENTORY_SWATCH_SIZE,
+	TEXT_RESOLUTION,
 	TILE_SIZE,
 	UI_DEPTH,
 } from "../config";
@@ -118,6 +119,7 @@ export class InventoryBar {
 					align: "center",
 				},
 			);
+			nameLabel.setResolution(TEXT_RESOLUTION);
 			nameLabel.setOrigin(0.5);
 			this.container.add(nameLabel);
 		}
@@ -207,6 +209,7 @@ export class InventoryBar {
 						align: "right",
 					},
 				);
+				countShadow.setResolution(TEXT_RESOLUTION);
 				countShadow.setOrigin(1, 1);
 				countShadow.setAlpha(0.5);
 				this.container.add(countShadow);
@@ -222,15 +225,17 @@ export class InventoryBar {
 						align: "right",
 					},
 				);
+				count.setResolution(TEXT_RESOLUTION);
 				count.setOrigin(1, 1);
 				this.container.add(count);
 			}
 
 			// Slot number — top left
 			const numLabel = this.scene.add.text(x + 4, y + 2, `${i + 1}`, {
-				fontSize: "11px",
+				fontSize: "14px",
 				color: INVENTORY_SLOT_NUM_COLOR,
 			});
+			numLabel.setResolution(TEXT_RESOLUTION);
 			this.container.add(numLabel);
 		}
 	};

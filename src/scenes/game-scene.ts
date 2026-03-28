@@ -7,68 +7,22 @@ import {
 } from "../audio/music";
 import { loadSettings } from "../audio/settings";
 import {
-	AMBIENT_PARTICLE_ALPHA_MAX,
-	AMBIENT_PARTICLE_ALPHA_MIN,
-	AMBIENT_PARTICLE_ALT_COLOR,
-	AMBIENT_PARTICLE_COLOR_CHANCE,
-	AMBIENT_PARTICLE_COUNT,
-	AMBIENT_PARTICLE_DEPTH,
-	AMBIENT_PARTICLE_RADIUS_MAX,
-	AMBIENT_PARTICLE_RADIUS_MIN,
-	AMBIENT_PARTICLE_SPEED_MAX,
-	AMBIENT_PARTICLE_SPEED_MIN,
 	BLOCK_INTERACT_RANGE,
 	CAMERA_LERP,
-	CLOUD_ALPHA,
-	CLOUD_ALPHA_JITTER,
-	CLOUD_CIRCLE_COUNT_BASE,
-	CLOUD_CIRCLE_COUNT_RANGE,
-	CLOUD_CIRCLE_JITTER_X,
-	CLOUD_CIRCLE_JITTER_Y,
-	CLOUD_CIRCLE_SPACING,
-	CLOUD_COUNT,
-	CLOUD_DEPTH,
-	CLOUD_ELLIPSE_HEIGHT_BASE,
-	CLOUD_ELLIPSE_HEIGHT_RANGE,
-	CLOUD_ELLIPSE_WIDTH_BASE,
-	CLOUD_ELLIPSE_WIDTH_RANGE,
-	CLOUD_SPEED,
-	CLOUD_WRAP_MARGIN,
-	COLORS,
 	FRUIT_PER_LIFE,
 	FRUIT_POPUP_DURATION,
 	FRUIT_POPUP_OFFSET_Y,
 	FRUIT_POPUP_RISE,
 	GAMEPAD_RIGHT_STICK_DEADZONE,
-	GOAL_BEACON_BEAM_ALPHA,
-	GOAL_BEACON_BEAM_WIDTH,
-	GOAL_BEACON_COLOR,
-	GOAL_BEACON_GLOW_ALPHA,
-	GOAL_BEACON_GLOW_STEPS,
-	GOAL_BEACON_HEIGHT_TILES,
-	GOAL_BEACON_PULSE_ALPHA,
-	GOAL_BEACON_PULSE_DURATION,
-	GOAL_BEACON_PULSE_SCALE_X,
 	HOVER_HIGHLIGHT_ALPHA,
 	HOVER_HIGHLIGHT_COLOR,
 	HOVER_HIGHLIGHT_LINE_WIDTH,
-	HUD_BG_ALPHA,
-	HUD_BORDER_ALPHA,
-	HUD_BORDER_RADIUS,
-	HUD_DEPTH,
 	HUD_FRUIT_COLOR,
 	HUD_FRUIT_Y,
 	HUD_JETPACK_POPUP_COLOR,
-	HUD_LAVA_LABEL_COLOR,
-	HUD_LEFT_H,
-	HUD_LEFT_W,
-	HUD_LEFT_X,
 	HUD_LIFE_POPUP_COLOR,
 	HUD_LIVES_COLOR,
 	HUD_LIVES_OFFSET_X,
-	HUD_LIVES_Y,
-	HUD_RIGHT_H,
-	HUD_RIGHT_W,
 	HUD_TIMER_COLOR,
 	INVENTORY_SLOTS,
 	JETPACK_COLOR,
@@ -80,27 +34,11 @@ import {
 	LAVA_GLOW_COLOR,
 	LAVA_GLOW_HEIGHT,
 	LAVA_GLOW_STEPS,
-	LAVA_METER_HEIGHT,
-	LAVA_METER_MARGIN_TOP,
-	LAVA_METER_WIDTH,
-	LAVA_METER_X,
-	LEAF_PARTICLE_DRIFT_SPEED,
-	LEAF_PARTICLE_HEIGHT,
-	LEAF_PARTICLE_INTERVAL,
-	LEAF_PARTICLE_LIFETIME,
-	LEAF_PARTICLE_MAX,
-	LEAF_PARTICLE_WIDTH,
-	LEAF_PARTICLE_WOBBLE_AMPLITUDE,
-	LEAF_PARTICLE_WOBBLE_SPEED,
 	MAX_LIVES,
 	MUSIC_VOLUME,
 	PLAYER_HEIGHT,
 	PLAYER_WIDTH,
-	SKY_GRADIENT_BAND_HEIGHT,
-	SKY_GRADIENT_BOTTOM_COLOR,
-	SKY_GRADIENT_DEPTH,
-	SKY_GRADIENT_MID_COLOR,
-	SKY_GRADIENT_TOP_COLOR,
+	TEXT_RESOLUTION,
 	TILE_SIZE,
 	TRAIL_PARTICLE_SIZE,
 	UI_DEPTH,
@@ -122,7 +60,21 @@ import {
 	readGamepadRightStick,
 } from "../player/player";
 import { BlockType } from "../types";
+import {
+	createLavaMeter,
+	type LavaMeterUI,
+	updateLavaMeter,
+} from "../ui/lava-meter";
 import { NotificationManager } from "../ui/notifications";
+import {
+	type AmbientParticle,
+	createAmbientParticles,
+	createClouds,
+	type LeafParticle,
+	updateAmbientParticles,
+	updateClouds,
+	updateLeafParticles,
+} from "../world/ambient";
 import {
 	createDayNight,
 	type DayNightCycle,
@@ -136,6 +88,7 @@ import {
 	updateLava,
 } from "../world/lava";
 import { Npc } from "../world/npcs";
+import { drawGoalBeacon, drawSkyGradient } from "../world/sky";
 import { updateWater } from "../world/water-physics";
 import {
 	createWorldTextures,
@@ -169,8 +122,7 @@ export class GameScene extends Phaser.Scene {
 	private hoverHighlight!: Phaser.GameObjects.Graphics;
 	private notifications!: NotificationManager;
 	private dayNight!: DayNightCycle;
-	private lavaMeterGfx!: Phaser.GameObjects.Graphics;
-	private lavaMeterLabel!: Phaser.GameObjects.Text;
+	private lavaMeter!: LavaMeterUI;
 	private gpLBWasDown = false;
 	private gpRBWasDown = false;
 	private gpBWasDown = false;
@@ -188,19 +140,12 @@ export class GameScene extends Phaser.Scene {
 	private clouds: Phaser.GameObjects.Container[] = [];
 
 	// Falling leaves
-	private leafParticles: {
-		gfx: Phaser.GameObjects.Rectangle;
-		startX: number;
-		age: number;
-	}[] = [];
+	private leafParticles: LeafParticle[] = [];
 	private leafSpawnTimer = 0;
 	private lavaGlowGfx!: Phaser.GameObjects.Graphics;
 
 	// Ambient upward-drifting particles
-	private ambientParticles: {
-		circle: Phaser.GameObjects.Arc;
-		speed: number;
-	}[] = [];
+	private ambientParticles: AmbientParticle[] = [];
 
 	// Music
 	private music!: MusicPlayer;
@@ -226,13 +171,13 @@ export class GameScene extends Phaser.Scene {
 		// Register shutdown cleanup
 		this.events.on("shutdown", () => this.shutdown());
 		// Sky gradient background (dark bottom → blue middle → golden top)
-		this.drawSkyGradient();
+		drawSkyGradient(this);
 
 		// Goal beacon at the top of the world
-		this.drawGoalBeacon();
+		drawGoalBeacon(this);
 
 		// Background clouds (created before world so they sit behind everything)
-		this.createClouds();
+		this.clouds = createClouds(this);
 
 		// Generate world
 		createWorldTextures(this);
@@ -241,7 +186,7 @@ export class GameScene extends Phaser.Scene {
 		this.blockGroup = renderWorld(this, grid);
 
 		// Ambient upward-drifting particles (world space)
-		this.createAmbientParticles();
+		this.ambientParticles = createAmbientParticles(this);
 
 		// Lava lake at world bottom
 		this.lava = createLava(this);
@@ -378,10 +323,10 @@ export class GameScene extends Phaser.Scene {
 		// Top-right: Lives + Fruit panel
 		this.livesText = this.add
 			.text(0, 0, "", { fontSize: "24px", color: HUD_LIVES_COLOR })
-			.setResolution(2);
+			.setResolution(TEXT_RESOLUTION);
 		this.fruitText = this.add
 			.text(0, 0, "", { fontSize: "14px", color: HUD_FRUIT_COLOR })
-			.setResolution(2);
+			.setResolution(TEXT_RESOLUTION);
 
 		this.rexUI.add
 			.sizer({
@@ -406,7 +351,7 @@ export class GameScene extends Phaser.Scene {
 				color: HUD_TIMER_COLOR,
 				fontStyle: "bold",
 			})
-			.setResolution(2);
+			.setResolution(TEXT_RESOLUTION);
 
 		this.rexUI.add
 			.label({
@@ -423,21 +368,7 @@ export class GameScene extends Phaser.Scene {
 		this.updateLivesHUD();
 		this.gameTimer = 0;
 		// Lava progress meter (left side vertical bar)
-		this.lavaMeterGfx = this.add.graphics();
-		this.lavaMeterGfx.setScrollFactor(0);
-		this.lavaMeterGfx.setDepth(100);
-		this.lavaMeterLabel = this.add.text(
-			LAVA_METER_X + LAVA_METER_WIDTH + 4,
-			LAVA_METER_MARGIN_TOP - 12,
-			"",
-			{
-				fontSize: "10px",
-				color: HUD_LAVA_LABEL_COLOR,
-			},
-		);
-		this.lavaMeterLabel.setResolution(2);
-		this.lavaMeterLabel.setScrollFactor(0);
-		this.lavaMeterLabel.setDepth(100);
+		this.lavaMeter = createLavaMeter(this);
 
 		// Jetpack fuel HUD bar (drawn next to lives display, only visible when fuel > 0)
 		this.jetpackBarGfx = this.add.graphics();
@@ -547,7 +478,7 @@ export class GameScene extends Phaser.Scene {
 		this.collectJetpack();
 		this.updateLivesHUD();
 		this.updateJetpackHUD();
-		this.updateLavaMeter(lavaY);
+		updateLavaMeter(this.lavaMeter, this.player.y, lavaY);
 		// Block breaking (left click held)
 		handleBlockBreak(
 			this,
@@ -573,13 +504,19 @@ export class GameScene extends Phaser.Scene {
 		updateDayNight(this.dayNight, this, this.player.x, this.player.y, delta);
 
 		// Background clouds parallax
-		this.updateClouds();
+		updateClouds(this.clouds);
 
 		// Falling leaf particles
-		this.updateLeafParticles(delta);
+		this.leafSpawnTimer = updateLeafParticles(
+			this,
+			this.grid,
+			this.leafParticles,
+			this.leafSpawnTimer,
+			delta,
+		);
 
 		// Ambient upward-drifting particles
-		this.updateAmbientParticles(delta);
+		updateAmbientParticles(this.ambientParticles, delta);
 
 		// NPC gravity + dialogue
 		for (let i = this.npcs.length - 1; i >= 0; i--) {
@@ -771,6 +708,7 @@ export class GameScene extends Phaser.Scene {
 						color: HUD_LIFE_POPUP_COLOR,
 					},
 				);
+				popup.setResolution(TEXT_RESOLUTION);
 				popup.setOrigin(0.5);
 				this.tweens.add({
 					targets: popup,
@@ -829,6 +767,7 @@ export class GameScene extends Phaser.Scene {
 					fontStyle: "bold",
 				},
 			);
+			popup.setResolution(TEXT_RESOLUTION);
 			popup.setOrigin(0.5);
 			this.tweens.add({
 				targets: popup,
@@ -895,229 +834,6 @@ export class GameScene extends Phaser.Scene {
 		}
 	};
 
-	private updateLavaMeter = (lavaY: number): void => {
-		const worldH = WORLD_HEIGHT_TILES * TILE_SIZE;
-		const meterX = LAVA_METER_X;
-		const meterY = LAVA_METER_MARGIN_TOP;
-		const meterW = LAVA_METER_WIDTH;
-		const meterH = LAVA_METER_HEIGHT;
-
-		const playerY = this.player.y;
-
-		// Normalize positions (0 = top of world, 1 = bottom)
-		const playerNorm = Math.max(0, Math.min(1, playerY / worldH));
-		const lavaNorm = Math.max(0, Math.min(1, lavaY / worldH));
-
-		this.lavaMeterGfx.clear();
-
-		// Background track
-		this.lavaMeterGfx.fillStyle(0x000000, 0.5);
-		this.lavaMeterGfx.fillRoundedRect(meterX, meterY, meterW, meterH, 4);
-		this.lavaMeterGfx.lineStyle(1, 0xffffff, 0.15);
-		this.lavaMeterGfx.strokeRoundedRect(meterX, meterY, meterW, meterH, 4);
-
-		// Lava fill (red, from bottom up to lava position)
-		const lavaFillH = (1 - lavaNorm) * meterH;
-		if (lavaFillH > 0) {
-			this.lavaMeterGfx.fillStyle(0xff4400, 0.6);
-			this.lavaMeterGfx.fillRect(
-				meterX + 1,
-				meterY + meterH - lavaFillH,
-				meterW - 2,
-				lavaFillH,
-			);
-		}
-
-		// Goal zone at top (golden)
-		this.lavaMeterGfx.fillStyle(0xffd700, 0.4);
-		this.lavaMeterGfx.fillRect(meterX + 1, meterY, meterW - 2, 8);
-
-		// Player position marker (white dot)
-		const playerMeterY = meterY + playerNorm * meterH;
-		this.lavaMeterGfx.fillStyle(0xffffff);
-		this.lavaMeterGfx.fillCircle(meterX + meterW / 2, playerMeterY, 4);
-		this.lavaMeterGfx.lineStyle(1, 0x000000, 0.5);
-		this.lavaMeterGfx.strokeCircle(meterX + meterW / 2, playerMeterY, 4);
-
-		// Height label in meters (1 tile = 1m)
-		const heightInMeters = Math.floor((worldH - playerY) / TILE_SIZE);
-		this.lavaMeterLabel.setText(`${heightInMeters}m`);
-	};
-
-	private createClouds = (): void => {
-		const worldW = WORLD_WIDTH_TILES * TILE_SIZE;
-		const worldH = WORLD_HEIGHT_TILES * TILE_SIZE;
-
-		for (let i = 0; i < CLOUD_COUNT; i++) {
-			const cloudX = Math.random() * worldW;
-			const cloudY = Math.random() * worldH * 0.5; // upper half of world
-			const children: Phaser.GameObjects.Ellipse[] = [];
-
-			// Each cloud is 2-3 overlapping white ellipses
-			const circleCount =
-				CLOUD_CIRCLE_COUNT_BASE +
-				Math.floor(Math.random() * CLOUD_CIRCLE_COUNT_RANGE);
-			for (let c = 0; c < circleCount; c++) {
-				const ellipse = this.add.ellipse(
-					(c - 1) * CLOUD_CIRCLE_SPACING +
-						Math.random() * CLOUD_CIRCLE_JITTER_X,
-					Math.random() * CLOUD_CIRCLE_JITTER_Y - CLOUD_CIRCLE_JITTER_Y / 2,
-					CLOUD_ELLIPSE_WIDTH_BASE + Math.random() * CLOUD_ELLIPSE_WIDTH_RANGE,
-					CLOUD_ELLIPSE_HEIGHT_BASE +
-						Math.random() * CLOUD_ELLIPSE_HEIGHT_RANGE,
-					COLORS.white,
-					CLOUD_ALPHA + Math.random() * CLOUD_ALPHA_JITTER,
-				);
-				children.push(ellipse);
-			}
-
-			const container = this.add.container(cloudX, cloudY, children);
-			container.setDepth(CLOUD_DEPTH);
-			this.clouds.push(container);
-		}
-	};
-
-	private updateClouds = (): void => {
-		const worldW = WORLD_WIDTH_TILES * TILE_SIZE;
-
-		for (const cloud of this.clouds) {
-			cloud.x += CLOUD_SPEED;
-			if (cloud.x > worldW + CLOUD_WRAP_MARGIN) {
-				cloud.x = -CLOUD_WRAP_MARGIN;
-			}
-		}
-	};
-
-	private updateLeafParticles = (delta: number): void => {
-		// Update existing particles
-		for (let i = this.leafParticles.length - 1; i >= 0; i--) {
-			const leaf = this.leafParticles[i];
-			leaf.age += delta;
-
-			if (leaf.age >= LEAF_PARTICLE_LIFETIME) {
-				leaf.gfx.destroy();
-				this.leafParticles.splice(i, 1);
-				continue;
-			}
-
-			// Drift down slowly
-			const dt = delta / 1000;
-			leaf.gfx.y += LEAF_PARTICLE_DRIFT_SPEED * dt;
-
-			// Sine-wave horizontal wobble
-			leaf.gfx.x =
-				leaf.startX +
-				Math.sin((leaf.age / 1000) * LEAF_PARTICLE_WOBBLE_SPEED) *
-					LEAF_PARTICLE_WOBBLE_AMPLITUDE;
-
-			// Fade out over lifetime
-			const progress = leaf.age / LEAF_PARTICLE_LIFETIME;
-			leaf.gfx.setAlpha(1 - progress);
-		}
-
-		// Spawn new leaves
-		this.leafSpawnTimer += delta;
-		if (
-			this.leafSpawnTimer >= LEAF_PARTICLE_INTERVAL &&
-			this.leafParticles.length < LEAF_PARTICLE_MAX
-		) {
-			this.leafSpawnTimer = 0;
-			this.spawnLeafParticle();
-		}
-	};
-
-	private drawSkyGradient = (): void => {
-		const worldW = WORLD_WIDTH_TILES * TILE_SIZE;
-		const worldH = WORLD_HEIGHT_TILES * TILE_SIZE;
-		const gfx = this.add.graphics();
-		gfx.setDepth(SKY_GRADIENT_DEPTH);
-
-		const bands = Math.ceil(worldH / SKY_GRADIENT_BAND_HEIGHT);
-		for (let i = 0; i < bands; i++) {
-			const t = i / bands; // 0 = top, 1 = bottom
-			let r: number;
-			let g: number;
-			let b: number;
-			if (t < 0.5) {
-				// Top to mid
-				const lt = t * 2;
-				r =
-					SKY_GRADIENT_TOP_COLOR.r +
-					(SKY_GRADIENT_MID_COLOR.r - SKY_GRADIENT_TOP_COLOR.r) * lt;
-				g =
-					SKY_GRADIENT_TOP_COLOR.g +
-					(SKY_GRADIENT_MID_COLOR.g - SKY_GRADIENT_TOP_COLOR.g) * lt;
-				b =
-					SKY_GRADIENT_TOP_COLOR.b +
-					(SKY_GRADIENT_MID_COLOR.b - SKY_GRADIENT_TOP_COLOR.b) * lt;
-			} else {
-				// Mid to bottom
-				const lt = (t - 0.5) * 2;
-				r =
-					SKY_GRADIENT_MID_COLOR.r +
-					(SKY_GRADIENT_BOTTOM_COLOR.r - SKY_GRADIENT_MID_COLOR.r) * lt;
-				g =
-					SKY_GRADIENT_MID_COLOR.g +
-					(SKY_GRADIENT_BOTTOM_COLOR.g - SKY_GRADIENT_MID_COLOR.g) * lt;
-				b =
-					SKY_GRADIENT_MID_COLOR.b +
-					(SKY_GRADIENT_BOTTOM_COLOR.b - SKY_GRADIENT_MID_COLOR.b) * lt;
-			}
-			const bandH = worldH / bands;
-			gfx.fillStyle(
-				Phaser.Display.Color.GetColor(
-					Math.round(r),
-					Math.round(g),
-					Math.round(b),
-				),
-			);
-			gfx.fillRect(0, i * bandH, worldW, bandH + 1);
-		}
-	};
-
-	private drawGoalBeacon = (): void => {
-		const worldW = WORLD_WIDTH_TILES * TILE_SIZE;
-		const beaconH = GOAL_BEACON_HEIGHT_TILES * TILE_SIZE;
-
-		// Golden glow at the top
-		const gfx = this.add.graphics();
-		gfx.setDepth(-15);
-		for (let i = 0; i < GOAL_BEACON_GLOW_STEPS; i++) {
-			const alpha = GOAL_BEACON_GLOW_ALPHA * (1 - i / GOAL_BEACON_GLOW_STEPS);
-			gfx.fillStyle(GOAL_BEACON_COLOR, alpha);
-			gfx.fillRect(
-				0,
-				i * (beaconH / GOAL_BEACON_GLOW_STEPS),
-				worldW,
-				beaconH / GOAL_BEACON_GLOW_STEPS + 1,
-			);
-		}
-
-		// Central light beam
-		const beamX = worldW / 2;
-		const beam = this.add.rectangle(
-			beamX,
-			beaconH / 2,
-			GOAL_BEACON_BEAM_WIDTH,
-			beaconH,
-			GOAL_BEACON_COLOR,
-			GOAL_BEACON_BEAM_ALPHA,
-		);
-		beam.setDepth(-14);
-		beam.setBlendMode(Phaser.BlendModes.ADD);
-
-		// Pulse the beam
-		this.tweens.add({
-			targets: beam,
-			alpha: GOAL_BEACON_PULSE_ALPHA,
-			scaleX: GOAL_BEACON_PULSE_SCALE_X,
-			duration: GOAL_BEACON_PULSE_DURATION,
-			yoyo: true,
-			repeat: -1,
-			ease: "Sine.easeInOut",
-		});
-	};
-
 	private updateLavaGlow = (lavaY: number): void => {
 		this.lavaGlowGfx.clear();
 		const worldW = WORLD_WIDTH_TILES * TILE_SIZE;
@@ -1136,104 +852,5 @@ export class GameScene extends Phaser.Scene {
 				glowH / steps + 1,
 			);
 		}
-	};
-
-	private createAmbientParticles = (): void => {
-		const worldW = WORLD_WIDTH_TILES * TILE_SIZE;
-		const worldH = WORLD_HEIGHT_TILES * TILE_SIZE;
-
-		for (let i = 0; i < AMBIENT_PARTICLE_COUNT; i++) {
-			const radius =
-				AMBIENT_PARTICLE_RADIUS_MIN +
-				Math.random() *
-					(AMBIENT_PARTICLE_RADIUS_MAX - AMBIENT_PARTICLE_RADIUS_MIN);
-			const alpha =
-				AMBIENT_PARTICLE_ALPHA_MIN +
-				Math.random() *
-					(AMBIENT_PARTICLE_ALPHA_MAX - AMBIENT_PARTICLE_ALPHA_MIN);
-			const speed =
-				AMBIENT_PARTICLE_SPEED_MIN +
-				Math.random() *
-					(AMBIENT_PARTICLE_SPEED_MAX - AMBIENT_PARTICLE_SPEED_MIN);
-
-			// Randomly pick white or light blue
-			const color =
-				Math.random() < AMBIENT_PARTICLE_COLOR_CHANCE
-					? 0xffffff
-					: AMBIENT_PARTICLE_ALT_COLOR;
-
-			const x = Math.random() * worldW;
-			const y = Math.random() * worldH;
-
-			const circle = this.add.circle(x, y, radius, color, alpha);
-			circle.setDepth(AMBIENT_PARTICLE_DEPTH);
-
-			this.ambientParticles.push({ circle, speed });
-		}
-	};
-
-	private updateAmbientParticles = (delta: number): void => {
-		const worldH = WORLD_HEIGHT_TILES * TILE_SIZE;
-		const worldW = WORLD_WIDTH_TILES * TILE_SIZE;
-		const dt = delta / 1000;
-
-		for (const particle of this.ambientParticles) {
-			particle.circle.y -= particle.speed * dt;
-
-			// Reset to bottom when reaching top
-			if (particle.circle.y < 0) {
-				particle.circle.y = worldH;
-				particle.circle.x = Math.random() * worldW;
-			}
-		}
-	};
-
-	private spawnLeafParticle = (): void => {
-		const cam = this.cameras.main;
-		const viewLeft = Math.floor(cam.scrollX / TILE_SIZE);
-		const viewRight = Math.ceil((cam.scrollX + cam.width) / TILE_SIZE);
-		const viewTop = Math.floor(cam.scrollY / TILE_SIZE);
-		const viewBottom = Math.ceil((cam.scrollY + cam.height) / TILE_SIZE);
-
-		// Find leaf blocks visible on screen
-		const leafPositions: { gx: number; gy: number }[] = [];
-		for (
-			let gy = Math.max(0, viewTop);
-			gy < Math.min(this.grid.length, viewBottom);
-			gy++
-		) {
-			for (
-				let gx = Math.max(0, viewLeft);
-				gx < Math.min(this.grid[0].length, viewRight);
-				gx++
-			) {
-				if (this.grid[gy][gx] === BlockType.Leaf) {
-					leafPositions.push({ gx, gy });
-				}
-			}
-		}
-
-		if (leafPositions.length === 0) return;
-
-		// Pick a random leaf block
-		const chosen =
-			leafPositions[Math.floor(Math.random() * leafPositions.length)];
-		const worldX = chosen.gx * TILE_SIZE + Math.random() * TILE_SIZE;
-		const worldY = chosen.gy * TILE_SIZE + TILE_SIZE;
-
-		const leafRect = this.add.rectangle(
-			worldX,
-			worldY,
-			LEAF_PARTICLE_WIDTH,
-			LEAF_PARTICLE_HEIGHT,
-			COLORS.leaf,
-		);
-		leafRect.setDepth(5);
-
-		this.leafParticles.push({
-			gfx: leafRect,
-			startX: worldX,
-			age: 0,
-		});
 	};
 }

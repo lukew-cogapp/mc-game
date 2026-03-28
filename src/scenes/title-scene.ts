@@ -19,6 +19,7 @@ import {
 	PLAYER_HEIGHT,
 	PLAYER_WIDTH,
 	SKIN_COLORS,
+	TEXT_RESOLUTION,
 	TITLE_BG_COLOR_BOTTOM,
 	TITLE_BG_COLOR_TOP,
 	TITLE_CELL_BG,
@@ -335,6 +336,7 @@ export class TitleScene extends Phaser.Scene {
 					fontStyle: "bold",
 				},
 			)
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5)
 			.setAlpha(TITLE_SHADOW_ALPHA);
 		this.add
@@ -343,6 +345,7 @@ export class TitleScene extends Phaser.Scene {
 				color: TITLE_TEXT_COLOR,
 				fontStyle: "bold",
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5);
 		// Subtle glow via duplicate
 		const titleGlow = this.add
@@ -351,6 +354,7 @@ export class TitleScene extends Phaser.Scene {
 				color: TITLE_GLOW_COLOR,
 				fontStyle: "bold",
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5)
 			.setAlpha(TITLE_GLOW_ALPHA);
 		titleGlow.setBlendMode(Phaser.BlendModes.ADD);
@@ -360,6 +364,7 @@ export class TitleScene extends Phaser.Scene {
 				fontSize: "14px",
 				color: TITLE_SUBTITLE_COLOR,
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5);
 
 		// -- Left panel: Character preview --
@@ -402,6 +407,7 @@ export class TitleScene extends Phaser.Scene {
 				"",
 				{ fontSize: "24px" },
 			)
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5);
 		this.previewFaceGfx = this.add.graphics();
 		this.previewFaceGfx.setPosition(leftPanelX, headY);
@@ -410,8 +416,9 @@ export class TitleScene extends Phaser.Scene {
 				leftPanelX,
 				charY + PLAYER_HEIGHT * 1.2 + TITLE_PREVIEW_HEAD_OFFSET_Y,
 				"",
-				{ fontSize: "12px" },
+				{ fontSize: "14px" },
 			)
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5);
 
 		// Soft circular glow behind character
@@ -450,6 +457,7 @@ export class TitleScene extends Phaser.Scene {
 				color: TITLE_NAME_COLOR,
 				fontStyle: "italic",
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5);
 
 		// Randomize button — rexUI Label with RoundRectangle background
@@ -462,10 +470,12 @@ export class TitleScene extends Phaser.Scene {
 				6,
 				Phaser.Display.Color.HexStringToColor(TITLE_DICE_BG_COLOR).color,
 			),
-			text: this.add.text(0, 0, "\u{1f3b2} Randomize", {
-				fontSize: "14px",
-				color: TITLE_DICE_COLOR,
-			}),
+			text: this.add
+				.text(0, 0, "\u{1f3b2} Randomize", {
+					fontSize: "14px",
+					color: TITLE_DICE_COLOR,
+				})
+				.setResolution(TEXT_RESOLUTION),
 			space: { left: 10, right: 10, top: 4, bottom: 4 },
 		});
 		diceBtnLabel.setPosition(leftPanelX, panelTop + panelH - 20);
@@ -512,13 +522,19 @@ export class TitleScene extends Phaser.Scene {
 		this.tabButtons = [];
 		this.tabIndicators = [];
 		const tabGap = TITLE_TAB_GAP;
+		const tabPadding = TITLE_TAB_CONTENT_PADDING;
+		const tabAreaWidth = rightPanelW - tabPadding * 2;
 		const tabWidth =
-			(rightPanelW - tabGap * (TAB_LABELS.length - 1)) / TAB_LABELS.length;
+			(tabAreaWidth - tabGap * (TAB_LABELS.length - 1)) / TAB_LABELS.length;
 
 		for (let i = 0; i < TAB_LABELS.length; i++) {
 			const tabName = TAB_LABELS[i];
 			const tabX =
-				rightPanelX - rightPanelW / 2 + (tabWidth + tabGap) * i + tabWidth / 2;
+				rightPanelX -
+				rightPanelW / 2 +
+				tabPadding +
+				(tabWidth + tabGap) * i +
+				tabWidth / 2;
 			const isActive = tabName === this.activeTab;
 
 			// Underline indicator
@@ -535,10 +551,11 @@ export class TitleScene extends Phaser.Scene {
 			// Tab label
 			const tabBtn = this.add
 				.text(tabX, tabY, tabName, {
-					fontSize: "13px",
+					fontSize: "14px",
 					color: isActive ? TITLE_TAB_ACTIVE_COLOR : TITLE_TAB_INACTIVE_COLOR,
 					fontStyle: isActive ? "bold" : "",
 				})
+				.setResolution(TEXT_RESOLUTION)
 				.setOrigin(0.5)
 				.setAlpha(isActive ? TITLE_TAB_ACTIVE_ALPHA : TITLE_TAB_INACTIVE_ALPHA)
 				.setInteractive({ useHandCursor: true });
@@ -585,11 +602,13 @@ export class TitleScene extends Phaser.Scene {
 		);
 		startBtnBg.setStrokeStyle(2, TITLE_START_BTN_STROKE);
 
-		const startLabel = this.add.text(0, 0, "\u25b6  PLAY", {
-			fontSize: "30px",
-			color: TITLE_START_LABEL_COLOR,
-			fontStyle: "bold",
-		});
+		const startLabel = this.add
+			.text(0, 0, "\u25b6  PLAY", {
+				fontSize: "30px",
+				color: TITLE_START_LABEL_COLOR,
+				fontStyle: "bold",
+			})
+			.setResolution(TEXT_RESOLUTION);
 
 		const startBtnLabel = this.rexUI.add.label({
 			background: startBtnBg,
@@ -634,10 +653,11 @@ export class TitleScene extends Phaser.Scene {
 					height - 40,
 					"\u{1f3ae} Press any gamepad button to connect",
 					{
-						fontSize: "11px",
+						fontSize: "14px",
 						color: TITLE_HINT_COLOR,
 					},
 				)
+				.setResolution(TEXT_RESOLUTION)
 				.setOrigin(0.5);
 
 			// Listen for any button press (works even before pad1 exists)
@@ -675,9 +695,10 @@ export class TitleScene extends Phaser.Scene {
 		// Controls toggle (bottom right)
 		const controlsBtn = this.add
 			.text(width - 16, height - 16, "? Controls", {
-				fontSize: "12px",
+				fontSize: "14px",
 				color: TITLE_HINT_COLOR,
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(1, 1)
 			.setInteractive({ useHandCursor: true });
 		controlsBtn.on("pointerover", () =>
@@ -893,6 +914,7 @@ export class TitleScene extends Phaser.Scene {
 
 			const emoji = this.add
 				.text(cellX, cellY, emojis[key], { fontSize: "20px" })
+				.setResolution(TEXT_RESOLUTION)
 				.setOrigin(0.5);
 			this.tabContainer.add(emoji);
 
@@ -982,6 +1004,7 @@ export class TitleScene extends Phaser.Scene {
 				color: TITLE_CONTROLS_HEADER_COLOR,
 				fontStyle: "bold",
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5);
 		this.controlsOverlay.add(headerText);
 
@@ -1003,10 +1026,11 @@ export class TitleScene extends Phaser.Scene {
 					startY + i * TITLE_CONTROLS_ROW_HEIGHT,
 					key ?? "",
 					{
-						fontSize: "13px",
+						fontSize: "14px",
 						color: TITLE_TAB_ACTIVE_COLOR,
 					},
 				)
+				.setResolution(TEXT_RESOLUTION)
 				.setOrigin(0, 0.5);
 			this.controlsOverlay.add(keyText);
 
@@ -1016,19 +1040,21 @@ export class TitleScene extends Phaser.Scene {
 					startY + i * TITLE_CONTROLS_ROW_HEIGHT,
 					desc ?? "",
 					{
-						fontSize: "13px",
+						fontSize: "14px",
 						color: TITLE_CONTROLS_DESC_COLOR,
 					},
 				)
+				.setResolution(TEXT_RESOLUTION)
 				.setOrigin(0, 0.5);
 			this.controlsOverlay.add(descText);
 		}
 
 		const closeText = this.add
 			.text(cx, cy + cardH / 2 - 20, "Click anywhere to close", {
-				fontSize: "11px",
+				fontSize: "14px",
 				color: TITLE_CONTROLS_CLOSE_COLOR,
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5);
 		this.controlsOverlay.add(closeText);
 	};
@@ -1117,10 +1143,11 @@ export class TitleScene extends Phaser.Scene {
 					y - yOffset,
 					`${enabled ? "\u{1f50a}" : "\u{1f507}"} ${label}: ${enabled ? "ON" : "OFF"}`,
 					{
-						fontSize: "12px",
+						fontSize: "14px",
 						color: enabled ? TITLE_TOGGLE_ON_COLOR : TITLE_TOGGLE_OFF_COLOR,
 					},
 				)
+				.setResolution(TEXT_RESOLUTION)
 				.setOrigin(0, 1)
 				.setInteractive({ useHandCursor: true });
 
@@ -1159,6 +1186,7 @@ export class TitleScene extends Phaser.Scene {
 				color: TITLE_SCORES_HEADER_COLOR,
 				fontStyle: "bold",
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5);
 
 		if (scores.length === 0) {
@@ -1168,6 +1196,7 @@ export class TitleScene extends Phaser.Scene {
 					color: TITLE_SCORES_EMPTY_COLOR,
 					fontStyle: "italic",
 				})
+				.setResolution(TEXT_RESOLUTION)
 				.setOrigin(0.5);
 		} else {
 			for (let i = 0; i < scores.length; i++) {
@@ -1178,6 +1207,7 @@ export class TitleScene extends Phaser.Scene {
 						fontSize: TITLE_SCORES_ROW_FONT_SIZE,
 						color: i === 0 ? TITLE_SCORE_GOLD_COLOR : TITLE_SCORE_COLOR,
 					})
+					.setResolution(TEXT_RESOLUTION)
 					.setOrigin(0.5);
 			}
 		}
@@ -1196,6 +1226,7 @@ export class TitleScene extends Phaser.Scene {
 				fontSize: TITLE_RESET_BTN_FONT_SIZE,
 				color: TITLE_RESET_COLOR,
 			})
+			.setResolution(TEXT_RESOLUTION)
 			.setOrigin(0.5)
 			.setInteractive({ useHandCursor: true });
 

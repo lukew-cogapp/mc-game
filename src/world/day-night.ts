@@ -3,13 +3,13 @@ import {
 	DAY_NIGHT_DAY_COLOR,
 	DAY_NIGHT_NIGHT_COLOR,
 	DAY_NIGHT_OVERLAY_MAX_ALPHA,
-	DAY_NIGHT_TEXT_BG_COLOR,
 	DAY_NIGHT_TEXT_COLOR,
 	DAY_NIGHT_VISION_EDGE_STEPS,
 	DAY_NIGHT_VISION_EDGE_WIDTH,
 	DAY_SKY_COLOR,
 	NIGHT_OVERLAY_COLOR,
 	NIGHT_SKY_COLOR,
+	TEXT_RESOLUTION,
 	TILE_SIZE,
 	UI_DEPTH,
 	VISION_RADIUS_DAY,
@@ -81,7 +81,7 @@ export const createDayNight = (scene: Phaser.Scene): DayNightCycle => {
 		color: DAY_NIGHT_TEXT_COLOR,
 		fontStyle: "bold",
 	});
-	timeIndicator.setResolution(2);
+	timeIndicator.setResolution(TEXT_RESOLUTION);
 	timeIndicator.setScrollFactor(0);
 	timeIndicator.setDepth(UI_DEPTH);
 

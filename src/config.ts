@@ -399,9 +399,9 @@ export const TITLE_CELL_BG = 0x1a1a44;
 export const TITLE_CELL_BG_HOVER = 0x2a2a55;
 export const TITLE_CELL_SELECTED_BORDER = 0xffdd44;
 export const TITLE_CELL_UNSELECTED_BORDER = 0x444466;
-export const TITLE_CELL_SIZE = 48;
-export const TITLE_CELL_GAP = 10;
-export const TITLE_PREVIEW_SCALE = 3;
+export const TITLE_CELL_SIZE = 56;
+export const TITLE_CELL_GAP = 12;
+export const TITLE_PREVIEW_SCALE = 4;
 export const TITLE_PARTICLE_COUNT = 15;
 export const TITLE_PARTICLE_RADIUS = 1.5;
 export const TITLE_PARTICLE_ALPHA_BASE = 0.15;
@@ -415,10 +415,10 @@ export const TITLE_SHADOW_OFFSET = 2;
 export const TITLE_SUBTITLE_Y = 80;
 export const TITLE_GLOW_ALPHA = 0.3;
 export const TITLE_SHADOW_ALPHA = 0.5;
-export const TITLE_LEFT_PANEL_OFFSET_X = -200;
+export const TITLE_LEFT_PANEL_OFFSET_X = -230;
 export const TITLE_PANEL_TOP = 120;
-export const TITLE_LEFT_PANEL_W = 180;
-export const TITLE_PANEL_H = 280;
+export const TITLE_LEFT_PANEL_W = 220;
+export const TITLE_PANEL_H = 340;
 export const TITLE_PLATFORM_OFFSET_Y = 160;
 export const TITLE_CHAR_OFFSET_Y = 30;
 export const TITLE_CHAR_GLOW_RADIUS = 60;
@@ -428,10 +428,10 @@ export const TITLE_IDLE_BOUNCE_Y = -8;
 export const TITLE_IDLE_BOUNCE_DURATION = 1200;
 export const TITLE_NAME_OFFSET_Y = 40;
 export const TITLE_DICE_OFFSET_Y = 20;
-export const TITLE_RIGHT_PANEL_OFFSET_X = 120;
-export const TITLE_RIGHT_PANEL_W = 320;
-export const TITLE_TAB_OFFSET_Y = 20;
-export const TITLE_TAB_GAP = 2;
+export const TITLE_RIGHT_PANEL_OFFSET_X = 140;
+export const TITLE_RIGHT_PANEL_W = 380;
+export const TITLE_TAB_OFFSET_Y = 24;
+export const TITLE_TAB_GAP = 8;
 export const TITLE_TAB_INDICATOR_HEIGHT = 4;
 export const TITLE_TAB_ACTIVE_COLOR = "#ffdd44";
 export const TITLE_TAB_INACTIVE_COLOR = "#888899";
@@ -440,20 +440,20 @@ export const TITLE_TAB_ACTIVE_ALPHA = 1;
 export const TITLE_TAB_INACTIVE_ALPHA = 0.6;
 export const TITLE_TAB_HOVER_ALPHA = 0.85;
 export const TITLE_TAB_CONTENT_OFFSET_Y = 42;
-export const TITLE_TAB_CONTENT_PADDING = 16;
-export const TITLE_START_BTN_OFFSET_Y = 50;
+export const TITLE_TAB_CONTENT_PADDING = 24;
+export const TITLE_START_BTN_OFFSET_Y = 60;
 export const TITLE_START_GLOW_W = 280;
 export const TITLE_START_GLOW_H = 64;
 export const TITLE_START_GLOW_COLOR = 0xff8800;
 export const TITLE_START_GLOW_ALPHA = 0.2;
-export const TITLE_START_BTN_W = 260;
-export const TITLE_START_BTN_H = 56;
+export const TITLE_START_BTN_W = 300;
+export const TITLE_START_BTN_H = 64;
 export const TITLE_START_BTN_RADIUS = 10;
-export const TITLE_START_BTN_FILL = 0xff7700;
+export const TITLE_START_BTN_FILL = 0xff8800;
 export const TITLE_START_BTN_STROKE = 0xff8800;
-export const TITLE_START_BTN_HOVER_FILL = 0xff8800;
+export const TITLE_START_BTN_HOVER_FILL = 0xffaa22;
 export const TITLE_START_BTN_HOVER_STROKE = 0xffaa33;
-export const TITLE_PREVIEW_HEAD_RADIUS = 12;
+export const TITLE_PREVIEW_HEAD_RADIUS = 16;
 export const TITLE_PREVIEW_HEAD_OFFSET_Y = 6;
 export const TITLE_PREVIEW_HAT_OFFSET_Y = 22;
 export const TITLE_CONTROLS_CARD_W = 340;
@@ -649,11 +649,11 @@ export const VICTORY_SPARKLE_COLOR = 0xffd700;
 
 // -- Title High Scores Section --
 export const TITLE_SCORES_OFFSET_Y = 120;
-export const TITLE_SCORES_HEADER_FONT_SIZE = "16px";
-export const TITLE_SCORES_ROW_FONT_SIZE = "13px";
+export const TITLE_SCORES_HEADER_FONT_SIZE = "20px";
+export const TITLE_SCORES_ROW_FONT_SIZE = "16px";
 export const TITLE_SCORES_ROW_HEIGHT = 20;
-export const TITLE_SCORES_EMPTY_FONT_SIZE = "13px";
-export const TITLE_RESET_BTN_FONT_SIZE = "11px";
+export const TITLE_SCORES_EMPTY_FONT_SIZE = "16px";
+export const TITLE_RESET_BTN_FONT_SIZE = "16px";
 export const TITLE_RESET_BTN_OFFSET_Y = 14;
 
 // -- Title Scene Text Colors --
@@ -729,7 +729,7 @@ export const NOTIFICATION_MAX_VISIBLE = 4;
 export const NOTIFICATION_OFFSET_X = 20;
 export const NOTIFICATION_OFFSET_Y = -80;
 export const NOTIFICATION_SPACING = 36;
-export const NOTIFICATION_FONT_SIZE = "14px";
+export const NOTIFICATION_FONT_SIZE = "16px";
 export const NOTIFICATION_BG_COLOR = 0x000000;
 export const NOTIFICATION_BG_ALPHA = 0.7;
 
@@ -748,6 +748,12 @@ export const MINE_TIME_DEFAULT = 300;
 // -- NPC Physics --
 export const NPC_GRAVITY = 600;
 export const NPC_FALL_CHECK_OFFSET = 1;
+
+// -- Text Resolution --
+export const TEXT_RESOLUTION = 3;
+
+// -- Water Sideways Spread --
+export const WATER_SPREAD_CHANCE = 0.3;
 
 // -- NPC Names --
 export const NPC_NAMES: readonly string[] = [
