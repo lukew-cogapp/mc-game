@@ -1,0 +1,12 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: lint
+      glob: "*.{ts,js,json}"
+      run: npx biome check --no-errors-on-unmatched {staged_files}
+
+    - name: typecheck
+      run: npx tsc --noEmit
+
+    - name: test
+      run: npx vitest run --passWithNoTests
