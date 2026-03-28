@@ -1,12 +1,15 @@
 import {
-	type GameSettings,
-	loadSettings,
-	saveSettings,
-} from "../audio/settings";
+	formatTimeMs,
+	loadHighScores,
+	resetHighScores,
+} from "../audio/high-scores";
+import { type GameSettings, saveSettings } from "../audio/settings";
 import {
 	CHARACTER_COLORS,
+	COLORS,
 	FACE_TYPES,
 	HAT_TYPES,
+	HIGH_SCORE_RESET_CONFIRM_MS,
 	LOCAL_STORAGE_KEY,
 	PLAYER_HEIGHT,
 	PLAYER_WIDTH,
@@ -59,8 +62,15 @@ import {
 	TITLE_PREVIEW_HEAD_OFFSET_Y,
 	TITLE_PREVIEW_HEAD_RADIUS,
 	TITLE_PREVIEW_SCALE,
+	TITLE_RESET_BTN_FONT_SIZE,
+	TITLE_RESET_BTN_OFFSET_Y,
 	TITLE_RIGHT_PANEL_OFFSET_X,
 	TITLE_RIGHT_PANEL_W,
+	TITLE_SCORES_EMPTY_FONT_SIZE,
+	TITLE_SCORES_HEADER_FONT_SIZE,
+	TITLE_SCORES_OFFSET_Y,
+	TITLE_SCORES_ROW_FONT_SIZE,
+	TITLE_SCORES_ROW_HEIGHT,
 	TITLE_SHADOW_ALPHA,
 	TITLE_SHADOW_OFFSET,
 	TITLE_START_BTN_FILL,
@@ -85,7 +95,6 @@ import {
 	TITLE_TAB_HOVER_COLOR,
 	TITLE_TAB_INACTIVE_ALPHA,
 	TITLE_TAB_INACTIVE_COLOR,
-	TITLE_TAB_INDICATOR_HEIGHT,
 	TITLE_TAB_OFFSET_Y,
 	TITLE_Y,
 	TRAIL_TYPES,
@@ -345,9 +354,9 @@ export class TitleScene extends Phaser.Scene {
 		// Mini floating island platform
 		const platformY = panelTop + TITLE_PLATFORM_OFFSET_Y;
 		const platform = this.add.graphics();
-		platform.fillStyle(0x4a7c2e);
+		platform.fillStyle(COLORS.grass);
 		platform.fillRoundedRect(leftPanelX - 40, platformY, 80, 12, 4);
-		platform.fillStyle(0x8b6914);
+		platform.fillStyle(COLORS.dirt);
 		platform.fillRoundedRect(leftPanelX - 35, platformY + 10, 70, 10, 4);
 
 		// Character preview

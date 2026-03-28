@@ -3,6 +3,7 @@ import { COLORS } from "./config";
 import { GameOverScene } from "./scenes/game-over-scene";
 import { GameScene } from "./scenes/game-scene";
 import { TitleScene } from "./scenes/title-scene";
+import { VictoryScene } from "./scenes/victory-scene";
 
 const config: Phaser.Types.Core.GameConfig = {
 	type: Phaser.AUTO,
@@ -10,7 +11,7 @@ const config: Phaser.Types.Core.GameConfig = {
 	height: window.innerHeight,
 	backgroundColor: `#${COLORS.void.toString(16).padStart(6, "0")}`,
 	parent: document.body,
-	scene: [TitleScene, GameScene, GameOverScene],
+	scene: [TitleScene, GameScene, GameOverScene, VictoryScene],
 	roundPixels: true,
 	pixelArt: true,
 	scale: {

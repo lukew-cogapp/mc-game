@@ -1,4 +1,5 @@
 import {
+	BLOCK_OUTLINE_ALPHA,
 	COLORS,
 	PLATFORM_SHADOW_ALPHA,
 	PLATFORM_SHADOW_HEIGHT,
@@ -28,6 +29,7 @@ const BLOCK_COLOR_MAP: Record<BlockType, number | null> = {
 	[BlockType.Peach]: COLORS.peach,
 	[BlockType.Strawberry]: COLORS.strawberry,
 	[BlockType.Berry]: COLORS.berry,
+	[BlockType.Jetpack]: COLORS.jetpack,
 };
 
 // Blocks that get custom pixel-art textures instead of flat squares
@@ -41,6 +43,7 @@ const CUSTOM_TEXTURE_BLOCKS = new Set([
 	BlockType.Berry,
 	BlockType.Water,
 	BlockType.Leaf,
+	BlockType.Jetpack,
 ]);
 
 const drawPixelArtTexture = (
@@ -192,6 +195,39 @@ const drawPixelArtTexture = (
 			gfx.fillRect(2, 26, 10, 1);
 			break;
 		}
+		case BlockType.Jetpack: {
+			// Backpack body
+			gfx.fillStyle(0x884422);
+			gfx.fillRect(cx - 7, cy - 8, 14, 16);
+			// Backpack top flap
+			gfx.fillStyle(0x995533);
+			gfx.fillRect(cx - 6, cy - 10, 12, 4);
+			// Shoulder straps
+			gfx.fillStyle(0x553311);
+			gfx.fillRect(cx - 8, cy - 7, 3, 12);
+			gfx.fillRect(cx + 5, cy - 7, 3, 12);
+			// Nozzles
+			gfx.fillStyle(0x666666);
+			gfx.fillRect(cx - 5, cy + 8, 4, 6);
+			gfx.fillRect(cx + 1, cy + 8, 4, 6);
+			// Flame from left nozzle
+			gfx.fillStyle(0xff6600);
+			gfx.fillRect(cx - 4, cy + 14, 2, 3);
+			gfx.fillStyle(0xffaa00);
+			gfx.fillRect(cx - 4, cy + 13, 2, 2);
+			// Flame from right nozzle
+			gfx.fillStyle(0xff6600);
+			gfx.fillRect(cx + 2, cy + 14, 2, 3);
+			gfx.fillStyle(0xffaa00);
+			gfx.fillRect(cx + 2, cy + 13, 2, 2);
+			// Fuel gauge on front
+			gfx.fillStyle(0x44cc44);
+			gfx.fillRect(cx - 3, cy - 4, 6, 3);
+			// Highlight
+			gfx.fillStyle(0xaa6633, 0.6);
+			gfx.fillRect(cx - 5, cy - 6, 3, 6);
+			break;
+		}
 		case BlockType.Leaf: {
 			// Base green fill
 			gfx.fillStyle(COLORS.leaf);
@@ -227,7 +263,7 @@ export const createWorldTextures = (scene: Phaser.Scene): void => {
 			// Standard flat square
 			gfx.fillStyle(color);
 			gfx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
-			gfx.lineStyle(1, 0x000000, 0.2);
+			gfx.lineStyle(1, 0x000000, BLOCK_OUTLINE_ALPHA);
 			gfx.strokeRect(0, 0, TILE_SIZE, TILE_SIZE);
 		}
 

@@ -32,6 +32,7 @@ const BLOCK_NAMES: Record<BlockType, string> = {
 	[BlockType.Peach]: "Peach",
 	[BlockType.Strawberry]: "Strawberry",
 	[BlockType.Berry]: "Berry",
+	[BlockType.Jetpack]: "Jetpack",
 };
 
 export interface Inventory {

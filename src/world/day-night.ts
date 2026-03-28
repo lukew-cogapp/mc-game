@@ -1,5 +1,8 @@
 import {
 	DAY_NIGHT_CYCLE_MS,
+	DAY_NIGHT_OVERLAY_MAX_ALPHA,
+	DAY_NIGHT_VISION_EDGE_STEPS,
+	DAY_NIGHT_VISION_EDGE_WIDTH,
 	DAY_SKY_COLOR,
 	NIGHT_OVERLAY_COLOR,
 	NIGHT_SKY_COLOR,
@@ -96,16 +99,16 @@ export const updateDayNight = (
 	const visionRadius = lerp(VISION_RADIUS_DAY, VISION_RADIUS_NIGHT, darkness);
 
 	// Overlay alpha — darker at night
-	cycle.overlay.setAlpha(darkness * 0.85);
+	cycle.overlay.setAlpha(darkness * DAY_NIGHT_OVERLAY_MAX_ALPHA);
 
 	// Redraw the circular mask at the player's position
 	cycle.maskGraphics.clear();
 	cycle.maskGraphics.fillStyle(0xffffff);
 
 	// Soft edge: draw concentric circles with decreasing alpha
-	const steps = 8;
+	const steps = DAY_NIGHT_VISION_EDGE_STEPS;
 	for (let i = steps; i >= 0; i--) {
-		const r = visionRadius + (steps - i) * 10;
+		const r = visionRadius + (steps - i) * DAY_NIGHT_VISION_EDGE_WIDTH;
 		const alpha = i / steps;
 		cycle.maskGraphics.fillStyle(0xffffff, alpha);
 		cycle.maskGraphics.fillCircle(playerX, playerY, r);
@@ -116,7 +119,6 @@ export const updateDayNight = (
 	scene.cameras.main.setBackgroundColor(skyColor);
 
 	// Time indicator
-	const _cyclePos = (cycle.elapsed % DAY_NIGHT_CYCLE_MS) / DAY_NIGHT_CYCLE_MS;
 	const isDay = darkness < 0.5;
 	const timeLabel = isDay ? "DAY" : "NIGHT";
 	const cycleNum = Math.floor(cycle.elapsed / DAY_NIGHT_CYCLE_MS) + 1;

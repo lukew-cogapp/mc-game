@@ -1,4 +1,7 @@
 import {
+	BLOCK_BREAK_OVERLAY_ALPHA,
+	BLOCK_BREAK_OVERLAY_COLOR,
+	BLOCK_BREAK_PROGRESS_ALPHA_RANGE,
 	BLOCK_INTERACT_RANGE,
 	BREAK_TIME_MS,
 	CRACK_LINE_ALPHA,
@@ -7,7 +10,7 @@ import {
 	CRACK_STAGES,
 	TILE_SIZE,
 } from "../config";
-import { BlockType } from "../types";
+import { BlockType, NON_SOLID_BLOCKS } from "../types";
 import { addBlockSprite, removeBlockSprite } from "../world/world-renderer";
 import {
 	addToInventory,
@@ -32,18 +35,6 @@ export const createBlockInteraction = (): BlockInteraction => ({
 	breakingOverlay: null,
 	crackOverlay: null,
 });
-
-const NON_SOLID_BLOCKS: ReadonlySet<BlockType> = new Set([
-	BlockType.Air,
-	BlockType.Water,
-	BlockType.Flower,
-	BlockType.Mushroom,
-	BlockType.Apple,
-	BlockType.Pear,
-	BlockType.Peach,
-	BlockType.Strawberry,
-	BlockType.Berry,
-]);
 
 const hasAdjacentSolid = (
 	grid: BlockType[][],
@@ -122,8 +113,8 @@ export const handleBlockBreak = (
 			gy * TILE_SIZE + TILE_SIZE / 2,
 			TILE_SIZE,
 			TILE_SIZE,
-			0xffffff,
-			0.3,
+			BLOCK_BREAK_OVERLAY_COLOR,
+			BLOCK_BREAK_OVERLAY_ALPHA,
 		);
 
 		interaction.crackOverlay = scene.add.graphics();
@@ -134,7 +125,9 @@ export const handleBlockBreak = (
 	// Update overlay opacity and crack lines based on progress
 	const progress = Math.min(interaction.breakingTimer / BREAK_TIME_MS, 1);
 	if (interaction.breakingOverlay) {
-		interaction.breakingOverlay.setAlpha(0.3 + progress * 0.4);
+		interaction.breakingOverlay.setAlpha(
+			BLOCK_BREAK_OVERLAY_ALPHA + progress * BLOCK_BREAK_PROGRESS_ALPHA_RANGE,
+		);
 	}
 	if (interaction.crackOverlay) {
 		const stage = Math.min(

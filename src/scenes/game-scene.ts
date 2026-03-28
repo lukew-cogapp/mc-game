@@ -95,6 +95,7 @@ import {
 	TILE_SIZE,
 	TRAIL_PARTICLE_SIZE,
 	UI_DEPTH,
+	WIN_ZONE_Y_TILES,
 	WORLD_HEIGHT_TILES,
 	WORLD_WIDTH_TILES,
 } from "../config";
@@ -139,6 +140,14 @@ import {
 } from "../world/world-renderer";
 import type { CharacterConfig } from "./title-scene";
 
+const FRUIT_TYPES: ReadonlySet<BlockType> = new Set([
+	BlockType.Apple,
+	BlockType.Pear,
+	BlockType.Peach,
+	BlockType.Strawberry,
+	BlockType.Berry,
+]);
+
 export class GameScene extends Phaser.Scene {
 	private player!: Player;
 	private grid!: BlockType[][];
@@ -162,6 +171,8 @@ export class GameScene extends Phaser.Scene {
 	private gpRBWasDown = false;
 	private gpBWasDown = false;
 	private gamepadCrosshair!: Phaser.GameObjects.Graphics;
+	private gameTimer = 0;
+	private timerText!: Phaser.GameObjects.Text;
 	private livesText!: Phaser.GameObjects.Text;
 	private fruitText!: Phaser.GameObjects.Text;
 
@@ -435,6 +446,17 @@ export class GameScene extends Phaser.Scene {
 
 		this.updateLivesHUD();
 
+		// Timer HUD (top center)
+		this.timerText = this.add.text(this.cameras.main.width / 2, 14, "0:00", {
+			fontSize: "18px",
+			color: "#ffffff",
+			fontStyle: "bold",
+		});
+		this.timerText.setResolution(2);
+		this.timerText.setOrigin(0.5, 0);
+		this.timerText.setScrollFactor(0);
+		this.timerText.setDepth(100);
+		this.gameTimer = 0;
 		// Lava progress meter (left side vertical bar)
 		this.lavaMeterGfx = this.add.graphics();
 		this.lavaMeterGfx.setScrollFactor(0);
@@ -526,10 +548,22 @@ export class GameScene extends Phaser.Scene {
 			this.scene.start("GameOverScene");
 			return;
 		}
+
+		// Win check — reached the top of the world
+		if (this.player.container.y < WIN_ZONE_Y_TILES * TILE_SIZE) {
+			this.scene.start("VictoryScene", { timeMs: this.gameTimer });
+			return;
+		}
+
+		// Timer
+		this.gameTimer += delta;
+		const mins = Math.floor(this.gameTimer / 60000);
+		const secs = Math.floor((this.gameTimer % 60000) / 1000);
+		this.timerText.setText(`${mins}:${secs.toString().padStart(2, "0")}`);
+
 		this.collectFruit();
 		this.updateLivesHUD();
 		this.updateLavaMeter(lavaY);
-
 		// Block breaking (left click held)
 		handleBlockBreak(
 			this,
@@ -709,14 +743,6 @@ export class GameScene extends Phaser.Scene {
 	};
 
 	private collectFruit = (): void => {
-		const FRUIT_TYPES = new Set([
-			BlockType.Apple,
-			BlockType.Pear,
-			BlockType.Peach,
-			BlockType.Strawberry,
-			BlockType.Berry,
-		]);
-
 		// Check the tiles the player overlaps
 		const px = this.player.container.x;
 		const py = this.player.container.y;

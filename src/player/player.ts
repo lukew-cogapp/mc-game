@@ -7,6 +7,12 @@ import {
 	GLIDE_GRAVITY,
 	GLIDE_HORIZONTAL_BOOST,
 	GRAVITY,
+	JETPACK_FUEL_MS,
+	JETPACK_PARTICLE_FREQUENCY,
+	JETPACK_PARTICLE_GRAVITY_Y,
+	JETPACK_PARTICLE_LIFESPAN,
+	JETPACK_PARTICLE_SPEED,
+	JETPACK_THRUST,
 	JUMP_BUFFER_MS,
 	JUMP_VELOCITY,
 	PLAYER_ACCELERATION,
@@ -50,7 +56,7 @@ import {
 	WATER_SPEED_MULTIPLIER,
 } from "../config";
 import type { CharacterConfig } from "../scenes/title-scene";
-import { BlockType } from "../types";
+import { BlockType, NON_SOLID_BLOCKS } from "../types";
 
 const HAT_EMOJI_MAP: Record<string, string> = {
 	tophat: "\u{1f3a9}",
@@ -85,6 +91,9 @@ export interface Player {
 	jumpBufferTimer: number;
 	wasGrounded: boolean;
 	trailEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null;
+	jetpackFuel: number;
+	jetpackActive: boolean;
+	jetpackEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null;
 }
 
 const TRAIL_EMITTER_CONFIGS: Record<
@@ -235,6 +244,19 @@ export const createPlayer = (
 	const trailEmitter =
 		trailType !== "none" ? createTrailEmitter(scene, trailType) : null;
 
+	// Jetpack flame emitter (created once, toggled on/off)
+	const jetpackEmitter = scene.add.particles(0, 0, "particle_dot", {
+		speed: JETPACK_PARTICLE_SPEED,
+		gravityY: JETPACK_PARTICLE_GRAVITY_Y,
+		lifespan: JETPACK_PARTICLE_LIFESPAN,
+		alpha: { start: 0.9, end: 0 },
+		scale: { start: 0.6, end: 0 },
+		tint: [0xff4400, 0xff8800, 0xffaa00],
+		frequency: JETPACK_PARTICLE_FREQUENCY,
+		emitting: false,
+		angle: { min: 70, max: 110 },
+	});
+
 	return {
 		container,
 		velocityX: 0,
@@ -255,20 +277,11 @@ export const createPlayer = (
 		jumpBufferTimer: 0,
 		wasGrounded: false,
 		trailEmitter,
+		jetpackFuel: 0,
+		jetpackActive: false,
+		jetpackEmitter,
 	};
 };
-
-const NON_SOLID_BLOCKS: ReadonlySet<BlockType> = new Set([
-	BlockType.Air,
-	BlockType.Water,
-	BlockType.Flower,
-	BlockType.Mushroom,
-	BlockType.Apple,
-	BlockType.Pear,
-	BlockType.Peach,
-	BlockType.Strawberry,
-	BlockType.Berry,
-]);
 
 const checkCollision = (
 	grid: BlockType[][],
@@ -529,6 +542,28 @@ export const updatePlayer = (
 
 	player.jumpWasDown = input.jump;
 
+	// Jetpack boost: airborne + holding jump + has fuel
+	if (!player.isGrounded && input.jump && player.jetpackFuel > 0) {
+		player.jetpackActive = true;
+		player.velocityY = JETPACK_THRUST;
+		player.jetpackFuel = Math.max(0, player.jetpackFuel - delta);
+	} else {
+		player.jetpackActive = false;
+	}
+
+	// Jetpack flame emitter
+	if (player.jetpackEmitter) {
+		if (player.jetpackActive) {
+			player.jetpackEmitter.setPosition(
+				player.container.x,
+				player.container.y + PLAYER_HEIGHT / 2,
+			);
+			player.jetpackEmitter.start();
+		} else {
+			player.jetpackEmitter.stop();
+		}
+	}
+
 	// Move horizontally
 	const newX = player.container.x + player.velocityX * dt;
 	const footY = player.container.y + halfH - 1;
@@ -554,12 +589,12 @@ export const updatePlayer = (
 	if (player.velocityY > 0) {
 		const leftFoot = checkCollision(
 			grid,
-			player.container.x - halfW + 2,
+			player.container.x - halfW + PLAYER_COLLISION_INSET,
 			newY + halfH,
 		);
 		const rightFoot = checkCollision(
 			grid,
-			player.container.x + halfW - 2,
+			player.container.x + halfW - PLAYER_COLLISION_INSET,
 			newY + halfH,
 		);
 		if (leftFoot || rightFoot) {
@@ -576,12 +611,12 @@ export const updatePlayer = (
 		// Check head (jumping)
 		const leftHead = checkCollision(
 			grid,
-			player.container.x - halfW + 2,
+			player.container.x - halfW + PLAYER_COLLISION_INSET,
 			newY - halfH,
 		);
 		const rightHead = checkCollision(
 			grid,
-			player.container.x + halfW - 2,
+			player.container.x + halfW - PLAYER_COLLISION_INSET,
 			newY - halfH,
 		);
 		if (leftHead || rightHead) {
@@ -595,15 +630,21 @@ export const updatePlayer = (
 	player.wasGrounded = player.isGrounded;
 	const groundCheckLeft = checkCollision(
 		grid,
-		player.container.x - halfW + 2,
+		player.container.x - halfW + PLAYER_COLLISION_INSET,
 		player.container.y + halfH + 1,
 	);
 	const groundCheckRight = checkCollision(
 		grid,
-		player.container.x + halfW - 2,
+		player.container.x + halfW - PLAYER_COLLISION_INSET,
 		player.container.y + halfH + 1,
 	);
 	player.isGrounded = groundCheckLeft || groundCheckRight;
+
+	// Update spawn point when landing on solid ground
+	if (player.isGrounded && !player.wasGrounded) {
+		player.spawnX = player.container.x;
+		player.spawnY = player.container.y;
+	}
 
 	// Lava death
 	if (player.container.y + halfH >= lavaY && player.invulnerableTimer <= 0) {
@@ -622,7 +663,8 @@ export const updatePlayer = (
 	// Visual: flip based on direction + gentle idle bob when grounded
 	player.container.scaleX = player.facingRight ? 1 : -1;
 	if (player.isGrounded && Math.abs(player.velocityX) < 1) {
-		const bobOffset = Math.sin(Date.now() * 0.003) * 1.5;
+		const bobOffset =
+			Math.sin(Date.now() * PLAYER_BOB_SPEED) * PLAYER_BOB_AMPLITUDE;
 		player.container.y += bobOffset;
 	}
 

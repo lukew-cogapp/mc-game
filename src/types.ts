@@ -17,6 +17,7 @@ export enum BlockType {
 	Peach = 15,
 	Strawberry = 16,
 	Berry = 17,
+	Jetpack = 18,
 }
 
 export type IslandRole = "safe" | "resource" | "reward" | "transit" | "goal";
@@ -34,3 +35,17 @@ export interface InventorySlot {
 	blockType: BlockType;
 	count: number;
 }
+
+/** Blocks that do not count as solid for collision or adjacency checks. */
+export const NON_SOLID_BLOCKS: ReadonlySet<BlockType> = new Set([
+	BlockType.Air,
+	BlockType.Water,
+	BlockType.Flower,
+	BlockType.Mushroom,
+	BlockType.Apple,
+	BlockType.Pear,
+	BlockType.Peach,
+	BlockType.Strawberry,
+	BlockType.Berry,
+	BlockType.Jetpack,
+]);

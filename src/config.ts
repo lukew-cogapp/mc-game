@@ -168,8 +168,9 @@ export const SKY_GRADIENT_MID_COLOR = { r: 135, g: 206, b: 235 }; // bright sky 
 export const SKY_GRADIENT_BOTTOM_COLOR = { r: 20, g: 10, b: 50 }; // dark blue near lava
 export const SKY_GRADIENT_BAND_HEIGHT = 4;
 
-// -- Goal Beacon --
+// -- Goal / Win --
 export const GOAL_BEACON_HEIGHT_TILES = 5;
+export const WIN_ZONE_Y_TILES = 8;
 export const GOAL_BEACON_COLOR = 0xffd700;
 export const GOAL_BEACON_BEAM_WIDTH = 120;
 
@@ -186,6 +187,20 @@ export const AMBIENT_PARTICLE_SPEED_MAX = 30;
 export const LAVA_GLOW_HEIGHT = 100;
 export const LAVA_GLOW_ALPHA = 0.3;
 export const LAVA_GLOW_COLOR = 0xff4400;
+
+// -- Jetpack --
+export const JETPACK_FUEL_MS = 3000;
+export const JETPACK_THRUST = -500;
+export const JETPACK_COLOR = 0xdd4400;
+export const JETPACK_PARTICLE_LIFESPAN = 300;
+export const JETPACK_PARTICLE_SPEED = 60;
+export const JETPACK_PARTICLE_GRAVITY_Y = 80;
+export const JETPACK_PARTICLE_FREQUENCY = 30;
+export const JETPACK_HUD_BAR_WIDTH = 60;
+export const JETPACK_HUD_BAR_HEIGHT = 8;
+export const JETPACK_HUD_OFFSET_Y = 4;
+export const JETPACK_SPAWN_COUNT_MIN = 2;
+export const JETPACK_SPAWN_COUNT_MAX = 3;
 
 // -- Colors --
 export const COLORS = {
@@ -209,6 +224,7 @@ export const COLORS = {
 	peach: 0xffb07c,
 	strawberry: 0xcc2244,
 	berry: 0x6622aa,
+	jetpack: 0xdd4400,
 	playerBody: 0x3498db,
 	playerHead: 0xf1c27d,
 	selected: 0xffff00,
@@ -583,3 +599,58 @@ export const BLOCK_BREAK_PROGRESS_ALPHA_RANGE = 0.4;
 
 // -- World Renderer Visual --
 export const BLOCK_OUTLINE_ALPHA = 0.2;
+
+// -- High Scores --
+export const HIGH_SCORES_KEY = "drift-lands-high-scores";
+export const HIGH_SCORES_MAX = 5;
+export const HIGH_SCORE_RESET_CONFIRM_MS = 3000;
+
+// -- Victory Scene Layout --
+export const VICTORY_BG_COLOR = 0x1a1a0a;
+export const VICTORY_OVERLAY_COLOR = 0x332200;
+export const VICTORY_OVERLAY_ALPHA = 0.4;
+export const VICTORY_TITLE_OFFSET_Y = -100;
+export const VICTORY_TITLE_FONT_SIZE = "48px";
+export const VICTORY_TITLE_SCALE_UP = 1.1;
+export const VICTORY_TITLE_FADE_DURATION = 1000;
+export const VICTORY_TIME_OFFSET_Y = -30;
+export const VICTORY_TIME_FONT_SIZE = "28px";
+export const VICTORY_TIME_FADE_DURATION = 600;
+export const VICTORY_TIME_FADE_DELAY = 800;
+export const VICTORY_SUBTITLE_OFFSET_Y = 10;
+export const VICTORY_SUBTITLE_FONT_SIZE = "16px";
+export const VICTORY_SUBTITLE_FADE_DURATION = 600;
+export const VICTORY_SUBTITLE_FADE_DELAY = 1000;
+export const VICTORY_HIGH_SCORE_OFFSET_Y = 45;
+export const VICTORY_HIGH_SCORE_FONT_SIZE = "22px";
+export const VICTORY_HIGH_SCORE_FADE_DELAY = 1200;
+export const VICTORY_LEADERBOARD_OFFSET_Y = 80;
+export const VICTORY_LEADERBOARD_ROW_HEIGHT = 24;
+export const VICTORY_LEADERBOARD_FONT_SIZE = "16px";
+export const VICTORY_LEADERBOARD_FADE_DELAY = 1400;
+export const VICTORY_PROMPT_OFFSET_Y = 200;
+export const VICTORY_PROMPT_FONT_SIZE = "16px";
+export const VICTORY_PROMPT_FADE_DURATION = 500;
+export const VICTORY_PROMPT_FADE_DELAY = 2000;
+export const VICTORY_PROMPT_PULSE_ALPHA = 0.4;
+export const VICTORY_PROMPT_PULSE_DURATION = 800;
+export const VICTORY_SPARKLE_COUNT = 20;
+export const VICTORY_SPARKLE_RADIUS = 2;
+export const VICTORY_SPARKLE_ALPHA_MIN = 0.2;
+export const VICTORY_SPARKLE_ALPHA_RANGE = 0.4;
+export const VICTORY_SPARKLE_DRIFT_MIN = 40;
+export const VICTORY_SPARKLE_DRIFT_RANGE = 60;
+export const VICTORY_SPARKLE_DURATION_MIN = 2000;
+export const VICTORY_SPARKLE_DURATION_RANGE = 3000;
+export const VICTORY_SPARKLE_DELAY_RANGE = 2000;
+export const VICTORY_INPUT_DELAY = 2000;
+export const VICTORY_SPARKLE_COLOR = 0xffd700;
+
+// -- Title High Scores Section --
+export const TITLE_SCORES_OFFSET_Y = 120;
+export const TITLE_SCORES_HEADER_FONT_SIZE = "16px";
+export const TITLE_SCORES_ROW_FONT_SIZE = "13px";
+export const TITLE_SCORES_ROW_HEIGHT = 20;
+export const TITLE_SCORES_EMPTY_FONT_SIZE = "13px";
+export const TITLE_RESET_BTN_FONT_SIZE = "11px";
+export const TITLE_RESET_BTN_OFFSET_Y = 14;

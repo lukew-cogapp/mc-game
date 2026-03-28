@@ -5,15 +5,24 @@ import {
 	NPC_BODY_HEIGHT,
 	NPC_BODY_WIDTH,
 	NPC_BUBBLE_ALPHA,
+	NPC_BUBBLE_BG_COLOR,
+	NPC_BUBBLE_CORNER_RADIUS,
+	NPC_BUBBLE_DEPTH,
 	NPC_BUBBLE_FADE_DURATION,
+	NPC_BUBBLE_FALLBACK_HEIGHT,
 	NPC_BUBBLE_FONT_SIZE,
 	NPC_BUBBLE_MAX_WIDTH,
 	NPC_BUBBLE_OFFSET_Y,
 	NPC_BUBBLE_PADDING_X,
 	NPC_BUBBLE_PADDING_Y,
 	NPC_BUBBLE_POINTER_SIZE,
+	NPC_CONTAINER_DEPTH,
 	NPC_COUNT,
 	NPC_DIALOGUE_CYCLE_MS,
+	NPC_DIALOGUE_LINE_COUNT,
+	NPC_EYE_COLOR,
+	NPC_EYE_OFFSET_X,
+	NPC_EYE_RADIUS,
 	NPC_HEAD_COLOR,
 	NPC_HEAD_RADIUS,
 	NPC_INTERACT_RANGE,
@@ -110,10 +119,19 @@ export const createNpcs = (
 		);
 
 		// Tiny eyes for character
-		const eyeOffsetX = 2;
 		const eyeY = -NPC_BODY_HEIGHT / 2 - NPC_HEAD_RADIUS;
-		const leftEye = scene.add.circle(-eyeOffsetX, eyeY, 1, 0x000000);
-		const rightEye = scene.add.circle(eyeOffsetX, eyeY, 1, 0x000000);
+		const leftEye = scene.add.circle(
+			-NPC_EYE_OFFSET_X,
+			eyeY,
+			NPC_EYE_RADIUS,
+			NPC_EYE_COLOR,
+		);
+		const rightEye = scene.add.circle(
+			NPC_EYE_OFFSET_X,
+			eyeY,
+			NPC_EYE_RADIUS,
+			NPC_EYE_COLOR,
+		);
 
 		const container = scene.add.container(pos.x, pos.y, [
 			body,
@@ -121,7 +139,7 @@ export const createNpcs = (
 			leftEye,
 			rightEye,
 		]);
-		container.setDepth(10);
+		container.setDepth(NPC_CONTAINER_DEPTH);
 
 		// Idle bob tween
 		scene.tweens.add({
@@ -137,7 +155,7 @@ export const createNpcs = (
 			x: pos.x,
 			y: pos.y,
 			container,
-			dialogueLines: pickRandomLines(3),
+			dialogueLines: pickRandomLines(NPC_DIALOGUE_LINE_COUNT),
 			isActive: false,
 		};
 	});
@@ -167,12 +185,15 @@ export const createNpcManager = (
 	};
 };
 
-const createSpeechBubble = (
+/** Build the text + background graphics for a speech bubble and return them. */
+const buildBubbleContent = (
 	scene: Phaser.Scene,
-	npc: NPC,
-	npcIndex: number,
 	text: string,
-): SpeechBubble => {
+): {
+	bg: Phaser.GameObjects.Graphics;
+	textObj: Phaser.GameObjects.Text;
+	bubbleHeight: number;
+} => {
 	const textObj = scene.add.text(0, 0, text, {
 		fontSize: NPC_BUBBLE_FONT_SIZE,
 		color: "#ffffff",
@@ -186,19 +207,15 @@ const createSpeechBubble = (
 		Math.min(textObj.width, NPC_BUBBLE_MAX_WIDTH) + NPC_BUBBLE_PADDING_X * 2;
 	const bubbleHeight = textObj.height + NPC_BUBBLE_PADDING_Y * 2;
 
-	// Background rounded rectangle
 	const bg = scene.add.graphics();
-	bg.fillStyle(0x000000, NPC_BUBBLE_ALPHA);
+	bg.fillStyle(NPC_BUBBLE_BG_COLOR, NPC_BUBBLE_ALPHA);
 	bg.fillRoundedRect(
 		-bubbleWidth / 2,
 		-bubbleHeight / 2,
 		bubbleWidth,
 		bubbleHeight,
-		6,
+		NPC_BUBBLE_CORNER_RADIUS,
 	);
-
-	// Small triangle pointer at the bottom
-	bg.fillStyle(0x000000, NPC_BUBBLE_ALPHA);
 	bg.fillTriangle(
 		-NPC_BUBBLE_POINTER_SIZE,
 		bubbleHeight / 2,
@@ -208,12 +225,23 @@ const createSpeechBubble = (
 		bubbleHeight / 2 + NPC_BUBBLE_POINTER_SIZE,
 	);
 
+	return { bg, textObj, bubbleHeight };
+};
+
+const createSpeechBubble = (
+	scene: Phaser.Scene,
+	npc: NPC,
+	npcIndex: number,
+	text: string,
+): SpeechBubble => {
+	const { bg, textObj, bubbleHeight } = buildBubbleContent(scene, text);
+
 	const bubbleContainer = scene.add.container(
 		npc.container.x,
 		npc.container.y - NPC_BUBBLE_OFFSET_Y - bubbleHeight / 2,
 		[bg, textObj],
 	);
-	bubbleContainer.setDepth(20);
+	bubbleContainer.setDepth(NPC_BUBBLE_DEPTH);
 	bubbleContainer.setAlpha(0);
 
 	// Fade in
@@ -237,41 +265,10 @@ const updateBubbleText = (
 	bubble: SpeechBubble,
 	npc: NPC,
 ): void => {
-	// Destroy old children and rebuild
 	bubble.container.removeAll(true);
 
 	const text = npc.dialogueLines[bubble.currentLineIndex];
-	const textObj = scene.add.text(0, 0, text, {
-		fontSize: NPC_BUBBLE_FONT_SIZE,
-		color: "#ffffff",
-		wordWrap: { width: NPC_BUBBLE_MAX_WIDTH - NPC_BUBBLE_PADDING_X * 2 },
-		align: "center",
-	});
-	textObj.setResolution(2);
-	textObj.setOrigin(0.5, 0.5);
-
-	const bubbleWidth =
-		Math.min(textObj.width, NPC_BUBBLE_MAX_WIDTH) + NPC_BUBBLE_PADDING_X * 2;
-	const bubbleHeight = textObj.height + NPC_BUBBLE_PADDING_Y * 2;
-
-	const bg = scene.add.graphics();
-	bg.fillStyle(0x000000, NPC_BUBBLE_ALPHA);
-	bg.fillRoundedRect(
-		-bubbleWidth / 2,
-		-bubbleHeight / 2,
-		bubbleWidth,
-		bubbleHeight,
-		6,
-	);
-	bg.fillStyle(0x000000, NPC_BUBBLE_ALPHA);
-	bg.fillTriangle(
-		-NPC_BUBBLE_POINTER_SIZE,
-		bubbleHeight / 2,
-		NPC_BUBBLE_POINTER_SIZE,
-		bubbleHeight / 2,
-		0,
-		bubbleHeight / 2 + NPC_BUBBLE_POINTER_SIZE,
-	);
+	const { bg, textObj, bubbleHeight } = buildBubbleContent(scene, text);
 
 	bubble.container.add([bg, textObj]);
 	bubble.container.setPosition(
@@ -319,7 +316,7 @@ export const updateNpcs = (
 				| undefined;
 			const bubbleHeight = textObj
 				? textObj.height + NPC_BUBBLE_PADDING_Y * 2
-				: 30;
+				: NPC_BUBBLE_FALLBACK_HEIGHT;
 			existingBubble.container.setPosition(
 				npc.container.x,
 				npc.container.y - NPC_BUBBLE_OFFSET_Y - bubbleHeight / 2,
